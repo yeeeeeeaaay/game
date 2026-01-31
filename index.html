@@ -103,16 +103,15 @@ h3{color:#6b4f4f;margin-bottom:5px;}
   box-shadow:0 0 30px gold;
   z-index:2000;
   display:none;
+  text-align:center;
 }
 
 /* Пузырьки */
 .bubble{
   position:fixed;
-  width:60px;
-  height:60px;
   border-radius:50%;
   background:radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0.3));
-  animation:floatUp 6s linear forwards;
+  animation:floatUp linear forwards;
   z-index:1500;
 }
 
@@ -128,8 +127,15 @@ h3{color:#6b4f4f;margin-bottom:5px;}
   width:100px;
   height:100px;
   pointer-events:none;
-  transition: transform 1s ease;
   z-index:1600;
+  animation:fall 1.2s ease forwards;
+}
+
+/* Анимация падения шоколадок */
+@keyframes fall{
+  0%{transform:translateY(-120px) rotate(0deg);}
+  50%{transform:translateY(100px) rotate(180deg);}
+  100%{transform:translateY(500px) rotate(360deg);}
 }
 </style>
 </head>
@@ -170,7 +176,7 @@ h3{color:#6b4f4f;margin-bottom:5px;}
 
 <!-- Письмо при победе -->
 <div id="letter">
-💌<br><br>
+✉️<br><br>
 Поздравляю, ты выиграл!<br>
 И с меня 3 желания 😏✨<br><br>
 Йееееееей!!!
@@ -259,25 +265,29 @@ function placeCapy(arr,board,show){
   }
 }
 
-// Шоколадка и эффекты
-function dropChocolate(cell){
-  const choc=document.createElement("img");
-  choc.src=CHOC_IMG;
-  choc.className="chocolate";
+// Падающие шоколадки
+function dropChocolates(cell){
   const rect=cell.getBoundingClientRect();
-  choc.style.left=rect.left+"px";
-  choc.style.top="-120px";
-  document.body.appendChild(choc);
-  setTimeout(()=>{choc.style.transform=`translateY(${rect.top}px)`},50);
-  setTimeout(()=>document.body.removeChild(choc),1500);
-
-  // Пузырьки
   for(let i=0;i<6;i++){
+    const choc=document.createElement("img");
+    choc.src=CHOC_IMG;
+    choc.className="chocolate";
+    choc.style.left=(rect.left + Math.random()*40)+"px";
+    choc.style.top="-150px";
+    document.body.appendChild(choc);
+    setTimeout(()=>document.body.removeChild(choc),1500);
+  }
+}
+
+// Пузырьки финальные
+function finalBubbles(){
+  for(let i=0;i<50;i++){
     const b=document.createElement("div");
     b.className="bubble";
-    b.style.width=b.style.height=(60+Math.random()*50)+"px";
-    b.style.left=(rect.left+Math.random()*40)+"px";
-    b.style.top=(rect.top+Math.random()*40)+"px";
+    b.style.width=b.style.height=(30+Math.random()*60)+"px";
+    b.style.left=Math.random()*window.innerWidth+"px";
+    b.style.top=window.innerHeight+"px";
+    b.style.animationDuration=(3+Math.random()*3)+"s";
     document.body.appendChild(b);
     setTimeout(()=>document.body.removeChild(b),6000);
   }
@@ -292,7 +302,7 @@ function playerShot(i,cell){
     cell.innerHTML="💥";
     bot[i]=false;
     botAlive--;
-    dropChocolate(cell);
+    dropChocolates(cell);
     checkEnd();
   }else{
     cell.classList.add("miss");
@@ -318,7 +328,7 @@ function botShot(){
     cell.innerHTML="💥";
     player[i]=false;
     playerAlive--;
-    dropChocolate(cell);
+    dropChocolates(cell);
     checkEnd();
   }else{
     cell.classList.add("miss");
@@ -330,33 +340,22 @@ function botShot(){
 // Проверка конца игры
 function checkEnd(){
   if(botAlive===0){
-    endGame("🏆 Победа! Все капибары спасены 🦫");
+    endGame("🏆 Победа! Все капибары спасены 🦫",true);
   }
   if(playerAlive===0){
-    endGame("💀 Поражение… капибары утонули");
+    endGame("💀 Поражение… капибары утонули",false);
   }
 }
 
 // Конец игры
-function endGame(text){
+function endGame(text,won){
   g.classList.add("hidden");
   msg.innerText=text;
   m.classList.remove("hidden");
 
-  // Если победа, показываем письмо
-  if(botAlive===0){
+  if(won){
     setTimeout(()=>{letter.style.display="block";},500);
-
-    // Финальные мыльные пузырьки
-    for(let i=0;i<50;i++){
-      const b=document.createElement("div");
-      b.className="bubble";
-      b.style.width=b.style.height=(50+Math.random()*50)+"px";
-      b.style.left=Math.random()*window.innerWidth+"px";
-      b.style.top=window.innerHeight+"px";
-      document.body.appendChild(b);
-      setTimeout(()=>document.body.removeChild(b),6000);
-    }
+    finalBubbles();
   }
 }
 </script>
