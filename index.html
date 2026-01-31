@@ -9,7 +9,7 @@
   body {
     margin: 0;
     font-family: Comic Sans MS, Arial, sans-serif;
-    background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+    background: linear-gradient(135deg, #fff7e6 0%, #ffd966 100%);
     overflow: hidden;
     user-select: none;
   }
@@ -20,7 +20,7 @@
     border-radius: 20px;
     padding: 20px;
     text-align: center;
-    box-shadow: 0 0 15px #f9a825aa;
+    box-shadow: 0 0 15px #b8860baa;
     position: relative;
     z-index: 10;
   }
@@ -67,22 +67,19 @@
     border-radius: 6px;
   }
 
-  /* Цель - дверь */
+  /* Цель - шоколадка Snickers */
   #goal {
     position: absolute;
     width: 60px;
-    height: 90px;
-    background: linear-gradient(45deg, #ffefba, #ffffff);
-    border: 3px solid #6b4f4f;
-    border-radius: 8px;
-    box-shadow: 0 0 15px #ffd700aa;
+    height: 30px;
+    background: transparent;
+    cursor: pointer;
   }
-  #goal::before {
-    content: "🚪";
-    font-size: 50px;
-    display: block;
-    text-align: center;
-    line-height: 90px;
+  #goal img {
+    width: 100%;
+    height: 100%;
+    user-select: none;
+    pointer-events: none;
   }
 
   /* Игрок - капибара */
@@ -99,9 +96,10 @@
   .bubble {
     position: absolute;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.35);
     box-shadow: 0 0 15px 5px rgba(255 255 255 / 0.5);
     animation: floatUp linear infinite;
+    pointer-events: none;
   }
   @keyframes floatUp {
     0% {
@@ -129,40 +127,39 @@
 </div>
 
 <div class="container hidden" id="mazeContainer">
-  <h2>Поймай дверь! 🚪</h2>
+  <h2>Поймай шоколадку Snickers! 🍫</h2>
   <div id="maze"></div>
   <p style="margin-top:10px; color:#6b4f4f; font-weight:bold;">Управляй стрелками</p>
 </div>
 
 <script>
-  // Этапы игры
   const colorScreen = document.getElementById("colorScreen");
   const messageScreen = document.getElementById("messageScreen");
   const mazeContainer = document.getElementById("mazeContainer");
   const messageText = document.getElementById("messageText");
   const maze = document.getElementById("maze");
 
-  // Создаем игрока (капибару)
   const player = document.createElement("img");
   player.id = "player";
-  player.src = "https://i.ibb.co/7SYW8cQ/capybara-cartoon.png"; // картинка из твоего файла
+  player.src = "https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png";
   player.alt = "Капибара";
   maze.appendChild(player);
 
-  // Создаем цель (дверь)
   const goal = document.createElement("div");
   goal.id = "goal";
+  const goalImg = document.createElement("img");
+  goalImg.src = "https://upload.wikimedia.org/wikipedia/commons/4/43/Snickers_bar_logo.png";
+  goalImg.alt = "Snickers";
+  goal.appendChild(goalImg);
   maze.appendChild(goal);
 
-  // Стены лабиринта — задаём их жёстко для сложности
   let walls = [];
 
-  // Устанавливаем позиции и размеры стен (тупики, коридоры)
   const wallsData = [
-    {top: 0, left: 0, width: 500, height: 20},    // верхняя стена
-    {top: 0, left: 0, width: 20, height: 500},    // левая стена
-    {top: 480, left: 0, width: 500, height: 20},  // нижняя стена
-    {top: 0, left: 480, width: 20, height: 500},  // правая стена
+    {top: 0, left: 0, width: 500, height: 20},
+    {top: 0, left: 0, width: 20, height: 500},
+    {top: 480, left: 0, width: 500, height: 20},
+    {top: 0, left: 480, width: 20, height: 500},
     {top: 100, left: 20, width: 460, height: 20},
     {top: 200, left: 0, width: 380, height: 20},
     {top: 300, left: 120, width: 380, height: 20},
@@ -182,11 +179,9 @@
     {top: 200, left: 480, width: 20, height: 50},
   ];
 
-  // Позиция игрока
   let playerPos = {top: 40, left: 40};
   const playerSize = 60;
 
-  // Проверка коллизий с стенами
   function checkCollision(x, y) {
     for(let w of walls) {
       let rx = parseInt(w.style.left);
@@ -203,7 +198,6 @@
     return false;
   }
 
-  // Проверка победы
   function checkWin(x, y) {
     let gx = parseInt(goal.style.left);
     let gy = parseInt(goal.style.top);
@@ -215,7 +209,6 @@
             y < gy + gh);
   }
 
-  // Создаем мыльные пузыри
   function createBubbles(count) {
     for(let i = 0; i < count; i++) {
       const b = document.createElement("div");
@@ -229,13 +222,11 @@
     }
   }
 
-  // Запуск лабиринта
   function startMaze() {
     colorScreen.classList.add("hidden");
     messageScreen.classList.add("hidden");
     mazeContainer.classList.remove("hidden");
 
-    // Создаем стены лабиринта
     walls.forEach(w => maze.removeChild(w));
     walls = [];
 
@@ -250,17 +241,14 @@
       walls.push(w);
     }
 
-    // Позиционируем игрока
     playerPos = {top: 40, left: 40};
     player.style.top = playerPos.top + "px";
     player.style.left = playerPos.left + "px";
 
-    // Позиционируем цель - дверь (ставим в угол справа снизу)
     goal.style.top = "410px";
     goal.style.left = "420px";
   }
 
-  // Проверка ответа на вопрос цвета
   function checkColor() {
     const val = document.getElementById("colorInput").value.toLowerCase().trim();
     if(val === "фиолетовый") {
@@ -278,7 +266,6 @@
     }
   }
 
-  // Управление стрелками
   document.addEventListener("keydown", e => {
     if (mazeContainer.classList.contains("hidden")) return;
     const step = 10;
@@ -290,13 +277,11 @@
     else if (e.key === "ArrowLeft") nx -= step;
     else if (e.key === "ArrowRight") nx += step;
 
-    // Проверка границ
     if (nx < 0) nx = 0;
     if (ny < 0) ny = 0;
     if (nx > 500 - playerSize) nx = 500 - playerSize;
     if (ny > 500 - playerSize) ny = 500 - playerSize;
 
-    // Проверка коллизий
     if (!checkCollision(nx, ny)) {
       playerPos.left = nx;
       playerPos.top = ny;
@@ -304,15 +289,15 @@
       player.style.top = ny + "px";
     }
 
-    // Проверка победы
     if (checkWin(playerPos.left, playerPos.top)) {
       mazeContainer.classList.add("hidden");
       messageText.innerText = "Поздравляю, ты прошёл! С меня 3 желания, йееееееей!";
       messageScreen.classList.remove("hidden");
-      createBubbles(80);
+      createBubbles(100);
     }
   });
 </script>
 
 </body>
 </html>
+
