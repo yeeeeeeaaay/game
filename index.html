@@ -43,7 +43,7 @@ input {
   width:100%;
   height:100%;
   pointer-events:none;
-  display:none; /* скрыт пока не стартует лабиринт */
+  display:none;
   z-index:0;
 }
 </style>
@@ -75,12 +75,10 @@ function checkColor(){
     msg.classList.remove("hidden");
     document.getElementById("messageText").innerText = "Chill 😎";
 
-    // Через 1.5 секунды запускаем лабиринт
     setTimeout(()=>{
       msg.classList.add("hidden");
-      startMaze();
+      startMaze(); // запускаем лабиринт
     }, 1500);
-
   } else {
     document.getElementById("colorScreen").classList.add("hidden");
     msg.classList.remove("hidden");
@@ -91,27 +89,36 @@ function checkColor(){
 /* ================== Лабиринт ================== */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-
-function resizeCanvas(){
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
+const bubbleCanvas = document.getElementById("bubbleCanvas");
+const bctx = bubbleCanvas.getContext("2d");
 
 let mazeDone = false;
-const player = {x:50, y:50, size:40};
-const goal = {x:window.innerWidth-100, y:window.innerHeight-100, size:50};
-const walls = [];
+let player = {}, goal = {}, walls = [], bubbles = [];
 
-// Случайные стены
-for(let i=0;i<15;i++){
-  walls.push({
-    x:Math.random()*window.innerWidth*0.8+50,
-    y:Math.random()*window.innerHeight*0.8+50,
-    w:Math.random()*100+50,
-    h:20
-  });
+function startMaze(){
+  canvas.style.display="block";
+  bubbleCanvas.style.display="block";
+
+  // задаём реальные размеры canvas
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  bubbleCanvas.width = window.innerWidth;
+  bubbleCanvas.height = window.innerHeight;
+
+  // создаём игрока, цель, стены заново
+  player = {x:50, y:50, size:40};
+  goal = {x:canvas.width-100, y:canvas.height-100, size:50};
+  walls = [];
+  for(let i=0;i<15;i++){
+    walls.push({
+      x:Math.random()*canvas.width*0.8+50,
+      y:Math.random()*canvas.height*0.8+50,
+      w:Math.random()*100+50,
+      h:20
+    });
+  }
+  mazeDone = false;
+  animateMaze();
 }
 
 function drawPlayer(){
@@ -148,7 +155,6 @@ function animateMaze(){
     showCongrats();
     return;
   }
-
   requestAnimationFrame(animateMaze);
 }
 
@@ -159,6 +165,7 @@ function checkCollision(){
          player.y < goal.y + goal.size;
 }
 
+/* Управление стрелками */
 document.addEventListener("keydown",(e)=>{
   if(!mazeDone){
     const step = 10;
@@ -184,18 +191,12 @@ document.addEventListener("keydown",(e)=>{
 });
 
 /* ================== Поздравление + пузырьки ================== */
-const bubbleCanvas = document.getElementById("bubbleCanvas");
-const bctx = bubbleCanvas.getContext("2d");
-bubbleCanvas.width = window.innerWidth;
-bubbleCanvas.height = window.innerHeight;
-const bubbles=[];
-
 function showCongrats(){
   const msg = document.getElementById("messageScreen");
   msg.classList.remove("hidden");
   document.getElementById("messageText").innerText="Поздравляю, ты прошёл! С меня 3 желания, йееееееей!";
 
-  // Пузырьки
+  bubbles=[];
   for(let i=0;i<50;i++){
     bubbles.push({
       x: Math.random()*bubbleCanvas.width,
@@ -220,14 +221,6 @@ function animateBubbles(){
   });
   requestAnimationFrame(animateBubbles);
 }
-
-/* ================== Старт лабиринта ================== */
-function startMaze(){
-  canvas.style.display="block";
-  resizeCanvas();
-  animateMaze();
-}
 </script>
-
 </body>
 </html>
