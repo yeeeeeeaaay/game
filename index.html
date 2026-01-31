@@ -3,233 +3,307 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Капибара: Морской бой 🦫⚓</title>
+<title>Капибарный морской бой 🦫🍫</title>
 
 <style>
 body{
   margin:0;
   font-family:Comic Sans MS, Arial;
-  background:linear-gradient(135deg,#fff7e6,#ffd966);
   text-align:center;
+  background:linear-gradient(#87ceeb,#ffe066);
+  overflow:hidden;
 }
 
+/* контейнеры */
 .container{
   width:520px;
   margin:20px auto;
-  background:rgba(255,255,255,.9);
+  background:rgba(255,255,255,.95);
   border-radius:20px;
   padding:20px;
-  box-shadow:0 0 15px #b8860baa;
+  box-shadow:0 0 20px rgba(0,0,0,.2);
+  position:relative;
+  z-index:5;
 }
 
 .hidden{display:none;}
 
-button{
+button,input{
   font-size:18px;
-  padding:10px 25px;
-  border:none;
-  border-radius:12px;
-  cursor:pointer;
-  background:#6b4f4f;
-  color:white;
-}
-
-input{
-  font-size:18px;
-  padding:10px;
+  padding:10px 20px;
   border-radius:12px;
   border:2px solid #6b4f4f;
-  width:60%;
 }
 
+button{
+  background:#6b4f4f;
+  color:white;
+  cursor:pointer;
+}
+
+/* доска */
 .board{
   display:grid;
-  grid-template-columns:repeat(6,50px);
-  grid-template-rows:repeat(6,50px);
-  gap:4px;
+  grid-template-columns:repeat(6,60px);
+  grid-template-rows:repeat(6,60px);
+  gap:6px;
   justify-content:center;
-  margin:10px auto;
+  margin:15px auto;
 }
 
 .cell{
-  width:50px;
-  height:50px;
-  background:#a3d9ff;
-  border-radius:6px;
-  cursor:pointer;
+  width:60px;
+  height:60px;
+  background:#7ec8ff;
+  border-radius:10px;
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:22px;
+  cursor:pointer;
 }
 
-.ship{background:#6b4f4f;}
-.hit{background:red;color:white;}
-.miss{background:#ddd;}
+.cell img{width:46px;pointer-events:none;}
 
-h3{margin:10px 0;color:#6b4f4f;}
+.hit{background:#ff9aa2 !important;}
+.miss{background:#ddd !important;}
+
+h3{color:#6b4f4f}
+
+/* шоколадки и искры */
+.choco{
+  position:fixed;
+  top:-60px;
+  width:40px;
+  animation:fall 2.5s linear forwards;
+  z-index:1000;
+}
+
+.spark{
+  position:fixed;
+  width:8px;
+  height:8px;
+  background:gold;
+  border-radius:50%;
+  animation:spark 1.2s linear forwards;
+}
+
+@keyframes fall{
+  to{transform:translateY(110vh) rotate(360deg);}
+}
+
+@keyframes spark{
+  to{
+    transform:translateY(120px) scale(0);
+    opacity:0;
+  }
+}
+
+/* пузыри */
+.bubble{
+  position:fixed;
+  bottom:-50px;
+  border-radius:50%;
+  background:rgba(255,255,255,.6);
+  animation:float 6s linear infinite;
+}
+
+@keyframes float{
+  to{transform:translateY(-120vh);opacity:0;}
+}
+
+/* солнце */
+.sun{
+  position:fixed;
+  top:20px;
+  right:20px;
+  width:120px;
+  height:120px;
+  background:yellow;
+  border-radius:50%;
+  box-shadow:0 0 40px gold;
+  z-index:0;
+}
 </style>
 </head>
 
 <body>
 
+<div class="sun"></div>
+
 <!-- ВОПРОС -->
-<div class="container" id="questionScreen">
+<div class="container" id="question">
   <h2>🦫 Твоя любимка?</h2>
-  <img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" width="180">
+  <img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" width="160">
   <br><br>
-  <input id="answerInput" placeholder="Введите имя">
+  <input id="answer" placeholder="Введите имя">
   <br><br>
   <button onclick="checkAnswer()">Ответить</button>
 
-  <iframe width="100%" height="250"
-    src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&loop=1&playlist=kbEC-AGr9n0&controls=1"
+  <iframe width="100%" height="230"
+    src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&loop=1&playlist=kbEC-AGr9n0"
     allow="autoplay">
   </iframe>
 </div>
 
 <!-- СООБЩЕНИЕ -->
-<div class="container hidden" id="messageScreen">
-  <h2 id="messageText"></h2>
+<div class="container hidden" id="message">
+  <h2 id="msgText"></h2>
 </div>
 
 <!-- ИГРА -->
-<div class="container hidden" id="gameScreen">
-  <h2>⚓ Морской бой</h2>
-
-  <h3>Твои корабли</h3>
+<div class="container hidden" id="game">
+  <h2>⚓ Морской бой с капибарами</h2>
+  <h3>Твои капибары</h3>
   <div class="board" id="playerBoard"></div>
 
-  <h3>Поле противника</h3>
+  <h3>Капибары противника</h3>
   <div class="board" id="botBoard"></div>
 </div>
 
 <script>
-const qScreen=document.getElementById("questionScreen");
-const mScreen=document.getElementById("messageScreen");
-const gScreen=document.getElementById("gameScreen");
-const mText=document.getElementById("messageText");
-
 const SIZE=6;
-let player=[], bot=[];
-let playerShips=3, botShips=3;
+const CAPY="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png";
+const CHOCO="https://snickersni.kz/i/packs/dushnila.png";
+
+let player=[],bot=[];
+let pAlive=3,bAlive=3;
 let turn=true;
 
-// ---------- ВОПРОС ----------
+const q=document.getElementById("question");
+const m=document.getElementById("message");
+const msg=document.getElementById("msgText");
+const g=document.getElementById("game");
+
 function checkAnswer(){
-  const ans=document.getElementById("answerInput").value.toLowerCase().trim();
-  if(ans==="лиса"){
-    mText.innerText="Chill 😎";
-    qScreen.classList.add("hidden");
-    mScreen.classList.remove("hidden");
-    setTimeout(()=>{
-      mScreen.classList.add("hidden");
-      startGame();
-    },1500);
+  if(document.getElementById("answer").value.toLowerCase().trim()==="лиса"){
+    msg.innerText="Chill 😎";
+    q.classList.add("hidden");
+    m.classList.remove("hidden");
+    setTimeout(()=>{m.classList.add("hidden");start();},1200);
   }else{
-    mText.innerText="Думаю, твоя любимка тебя не простит 😂";
-    qScreen.classList.add("hidden");
-    mScreen.classList.remove("hidden");
+    msg.innerText="Думаю, твоя любимка тебя не простит 😂";
+    q.classList.add("hidden");
+    m.classList.remove("hidden");
   }
 }
 
-// ---------- ИГРА ----------
-function startGame(){
-  gScreen.classList.remove("hidden");
-  initBoards();
+function start(){
+  g.classList.remove("hidden");
+  init();
 }
 
-function initBoards(){
-  const pB=document.getElementById("playerBoard");
-  const bB=document.getElementById("botBoard");
-  pB.innerHTML=""; bB.innerHTML="";
-  player=[]; bot=[];
-  playerShips=3; botShips=3;
+function init(){
+  const pb=document.getElementById("playerBoard");
+  const bb=document.getElementById("botBoard");
+  pb.innerHTML="";bb.innerHTML="";
+  player=[];bot=[];
+  pAlive=3;bAlive=3;turn=true;
 
-  for(let i=0;i<SIZE*SIZE;i++){
-    player[i]=false;
-    bot[i]=false;
+  for(let i=0;i<36;i++){
+    player[i]=false;bot[i]=false;
 
     const pc=document.createElement("div");
-    pc.className="cell";
-    pB.appendChild(pc);
+    pc.className="cell";pb.appendChild(pc);
 
     const bc=document.createElement("div");
     bc.className="cell";
-    bc.onclick=()=>playerShot(i,bc);
-    bB.appendChild(bc);
+    bc.onclick=()=>shoot(i,bc);
+    bb.appendChild(bc);
   }
-
-  placeShips(player,document.getElementById("playerBoard"),true);
-  placeShips(bot,document.getElementById("botBoard"),false);
+  place(player,pb,true);
+  place(bot,bb,false);
 }
 
-function placeShips(arr,board,show){
-  let placed=0;
-  while(placed<3){
+function place(arr,board,show){
+  let c=0;
+  while(c<3){
     let i=Math.floor(Math.random()*36);
     if(!arr[i]){
       arr[i]=true;
-      if(show) board.children[i].classList.add("ship");
-      placed++;
+      if(show){
+        let img=document.createElement("img");
+        img.src=CAPY;
+        board.children[i].appendChild(img);
+      }
+      c++;
     }
   }
 }
 
-function playerShot(i,cell){
-  if(!turn || cell.classList.contains("hit") || cell.classList.contains("miss")) return;
-
+function shoot(i,cell){
+  if(!turn||cell.classList.contains("hit")||cell.classList.contains("miss"))return;
   if(bot[i]){
     cell.classList.add("hit");
-    cell.innerText="🔥";
-    bot[i]=false;
-    botShips--;
+    cell.innerHTML="🍫";
+    bot[i]=false;bAlive--;
+    effects();
     checkEnd();
   }else{
     cell.classList.add("miss");
-    cell.innerText="•";
+    cell.innerHTML="•";
     turn=false;
-    setTimeout(botShot,700);
+    setTimeout(botTurn,700);
   }
 }
 
-function botShot(){
+function botTurn(){
   let i;
-  do{
-    i=Math.floor(Math.random()*36);
-  }while(
-    document.getElementById("playerBoard").children[i].classList.contains("hit") ||
+  do{i=Math.floor(Math.random()*36);}
+  while(
+    document.getElementById("playerBoard").children[i].classList.contains("hit")||
     document.getElementById("playerBoard").children[i].classList.contains("miss")
   );
-
   const cell=document.getElementById("playerBoard").children[i];
-
   if(player[i]){
     cell.classList.add("hit");
-    cell.innerText="🔥";
-    player[i]=false;
-    playerShips--;
+    cell.innerHTML="🍫";
+    player[i]=false;pAlive--;
+    effects();
     checkEnd();
   }else{
     cell.classList.add("miss");
-    cell.innerText="•";
+    cell.innerHTML="•";
   }
   turn=true;
 }
 
-function checkEnd(){
-  if(botShips===0){
-    endGame("🏆 Победа! Капибара счастлива 🦫💛");
-  }
-  if(playerShips===0){
-    endGame("💀 Поражение… Капибара разочарована");
+function effects(){
+  for(let i=0;i<6;i++){
+    const c=document.createElement("img");
+    c.src=CHOCO;
+    c.className="choco";
+    c.style.left=Math.random()*100+"vw";
+    document.body.appendChild(c);
+    setTimeout(()=>c.remove(),3000);
+
+    const s=document.createElement("div");
+    s.className="spark";
+    s.style.left=Math.random()*100+"vw";
+    s.style.top="0px";
+    document.body.appendChild(s);
+    setTimeout(()=>s.remove(),1500);
   }
 }
 
-function endGame(text){
-  gScreen.classList.add("hidden");
-  mText.innerText=text;
-  mScreen.classList.remove("hidden");
+function checkEnd(){
+  if(bAlive===0){
+    g.classList.add("hidden");
+    msg.innerText="💌 Поздравляю, ты выиграл!\nС меня 3 желания, йееееееей!";
+    m.classList.remove("hidden");
+    bubbles();
+  }
+}
+
+function bubbles(){
+  for(let i=0;i<80;i++){
+    const b=document.createElement("div");
+    b.className="bubble";
+    let s=10+Math.random()*30;
+    b.style.width=b.style.height=s+"px";
+    b.style.left=Math.random()*100+"vw";
+    b.style.animationDuration=4+Math.random()*4+"s";
+    document.body.appendChild(b);
+  }
 }
 </script>
 </body>
