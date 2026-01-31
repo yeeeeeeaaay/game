@@ -10,6 +10,9 @@
     font-family: Comic Sans MS, Arial, sans-serif;
     background: linear-gradient(135deg,#fff7e6 0%,#ffd966 100%);
     text-align:center;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
   }
   h2 {color:#6b4f4f;}
   #board {
@@ -110,7 +113,7 @@ function cellClick(r,c){
   }
 }
 
-// простой бот ходит случайной шашкой
+// бот ходит
 function botMove(){
   const botPieces=[];
   for(let r=0;r<8;r++){
@@ -123,9 +126,11 @@ function botMove(){
     const dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
     for(let [dr,dc] of dirs){
       const nr=r+dr, nc=c+dc;
+      // обычный ход
       if(nr>=0 && nr<8 && nc>=0 && nc<8 && !board[nr][nc]){
         board[nr][nc]="bot"; board[r][c]=null; renderBoard(); return;
       }
+      // прыжок и съедание
       if(nr+dr>=0 && nr+dr<8 && nc+dc>=0 && nc+dc<8 && board[nr][nc]==="player" && !board[nr+dr][nc+dc]){
         board[nr+dr][nc+dc]="bot"; board[r][c]=null; board[nr][nc]=null; renderBoard(); return;
       }
