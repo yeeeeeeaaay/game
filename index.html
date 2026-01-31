@@ -2,15 +2,16 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Капибарный лабиринт</title>
+<title>Капибарный лабиринт без canvas</title>
 <style>
 body {
   margin:0;
-  overflow:hidden;
   font-family: Comic Sans MS, Arial, sans-serif;
   text-align:center;
   background: linear-gradient(to bottom, #87cefa, #fffacd); /* небо и солнце */
+  overflow: hidden;
 }
+
 .hidden { display:none; }
 .container {
   background: rgba(255,255,255,0.85);
@@ -19,9 +20,10 @@ body {
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
+  position: relative;
   z-index:10;
-  position:relative;
 }
+
 button {
   font-size: 18px;
   padding: 12px 25px;
@@ -30,28 +32,80 @@ button {
   cursor: pointer;
   margin: 10px;
 }
+
 input {
   font-size: 18px;
   padding: 10px;
   border-radius: 10px;
   border: 2px solid #333;
 }
-#gameCanvas, #bubbleCanvas {
-  position:absolute;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  pointer-events:none;
-  display:none;
-  z-index:0;
+
+/* Лабиринт */
+#maze {
+  position: relative;
+  width: 100%;
+  height: 500px;
+  margin-top: 20px;
+  background: #a3d9a5; /* трава */
+  border: 3px solid #228B22;
+  overflow: hidden;
+}
+
+/* Стены */
+.wall {
+  position: absolute;
+  background: #228B22;
+}
+
+/* Цель */
+#goal {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  background: #ff69b4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 24px;
+}
+
+/* Игрок - капибара */
+#player {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #a0522d;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+#player::after {
+  content: "🍫";
+  position: absolute;
+  top: 5px;
+  left: 5px;
+}
+
+/* Мыльные пузыри */
+.bubble {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  background: rgba(173,216,230,0.7);
+  border-radius: 50%;
+  animation: floatUp linear infinite;
+}
+
+@keyframes floatUp {
+  from { transform: translateY(0); }
+  to { transform: translateY(-600px); opacity:0; }
 }
 </style>
 </head>
 <body>
-
-<canvas id="gameCanvas"></canvas>
-<canvas id="bubbleCanvas"></canvas>
 
 <div class="container" id="colorScreen">
   <h2>🦫 Мой любимый цвет?</h2>
@@ -62,6 +116,11 @@ input {
 
 <div class="container hidden" id="messageScreen">
   <h2 id="messageText"></h2>
+</div>
+
+<div class="container hidden" id="mazeContainer">
+  <h2>Поймай цель! 🏆</h2>
+  <div id="maze"></div>
 </div>
 
 <script>
@@ -87,106 +146,76 @@ function checkColor(){
 }
 
 /* ================== Лабиринт ================== */
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
-const bubbleCanvas = document.getElementById("bubbleCanvas");
-const bctx = bubbleCanvas.getContext("2d");
+const maze = document.getElementById("maze");
+const mazeContainer = document.getElementById("mazeContainer");
+const player = document.createElement("div");
+player.id="player";
+maze.appendChild(player);
 
-let mazeDone = false;
-let player = {}, goal = {}, walls = [], bubbles = [];
+const goal = document.createElement("div");
+goal.id="goal";
+goal.innerText="🏆";
+maze.appendChild(goal);
+
+let walls = [];
 
 function startMaze(){
-  canvas.style.display="block";
-  bubbleCanvas.style.display="block";
+  mazeContainer.classList.remove("hidden");
+  player.style.top="10px";
+  player.style.left="10px";
 
-  // задаём реальные размеры canvas
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-  bubbleCanvas.width = window.innerWidth;
-  bubbleCanvas.height = window.innerHeight;
+  // цель
+  goal.style.top = (Math.random()*400+50)+"px";
+  goal.style.left = (Math.random()*400+50)+"px";
 
-  // создаём игрока, цель, стены заново
-  player = {x:50, y:50, size:40};
-  goal = {x:canvas.width-100, y:canvas.height-100, size:50};
-  walls = [];
-  for(let i=0;i<15;i++){
-    walls.push({
-      x:Math.random()*canvas.width*0.8+50,
-      y:Math.random()*canvas.height*0.8+50,
-      w:Math.random()*100+50,
-      h:20
-    });
+  // стены
+  walls.forEach(w=>maze.removeChild(w));
+  walls=[];
+  for(let i=0;i<10;i++){
+    const w = document.createElement("div");
+    w.className="wall";
+    w.style.width = (Math.random()*100+50)+"px";
+    w.style.height = "20px";
+    w.style.top = (Math.random()*400+50)+"px";
+    w.style.left = (Math.random()*400+50)+"px";
+    maze.appendChild(w);
+    walls.push(w);
   }
-  mazeDone = false;
-  animateMaze();
-}
-
-function drawPlayer(){
-  ctx.fillStyle="#a0522d"; // капибара
-  ctx.fillRect(player.x, player.y, player.size, player.size);
-  ctx.fillStyle="#8b0000"; // шоколадка
-  ctx.fillRect(player.x+10, player.y+10, 20, 20);
-}
-
-function drawGoal(){
-  ctx.fillStyle="#ff69b4";
-  ctx.fillRect(goal.x, goal.y, goal.size, goal.size);
-  ctx.fillStyle="white";
-  ctx.font="20px Comic Sans MS";
-  ctx.fillText("🏆", goal.x+10, goal.y+30);
-}
-
-function drawWalls(){
-  ctx.fillStyle="#228B22";
-  walls.forEach(w=>{
-    ctx.fillRect(w.x,w.y,w.w,w.h);
-  });
-}
-
-function animateMaze(){
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-  drawWalls();
-  drawGoal();
-  drawPlayer();
-
-  if(checkCollision()){
-    mazeDone=true;
-    canvas.style.display="none";
-    showCongrats();
-    return;
-  }
-  requestAnimationFrame(animateMaze);
-}
-
-function checkCollision(){
-  return player.x + player.size > goal.x &&
-         player.x < goal.x + goal.size &&
-         player.y + player.size > goal.y &&
-         player.y < goal.y + goal.size;
 }
 
 /* Управление стрелками */
 document.addEventListener("keydown",(e)=>{
-  if(!mazeDone){
-    const step = 10;
-    let nextX = player.x;
-    let nextY = player.y;
-    if(e.key==="ArrowUp") nextY-=step;
-    if(e.key==="ArrowDown") nextY+=step;
-    if(e.key==="ArrowLeft") nextX-=step;
-    if(e.key==="ArrowRight") nextX+=step;
+  if(mazeContainer.classList.contains("hidden")) return;
+  const step = 10;
+  let px = parseInt(player.style.left);
+  let py = parseInt(player.style.top);
+  let nx = px, ny = py;
 
-    let collide=false;
-    walls.forEach(w=>{
-      if(nextX+player.size > w.x && nextX < w.x+w.w &&
-         nextY+player.size > w.y && nextY < w.y+w.h){
+  if(e.key==="ArrowUp") ny -= step;
+  if(e.key==="ArrowDown") ny += step;
+  if(e.key==="ArrowLeft") nx -= step;
+  if(e.key==="ArrowRight") nx += step;
+
+  // проверка столкновений со стенами
+  let collide=false;
+  walls.forEach(w=>{
+    const rx=parseInt(w.style.left), ry=parseInt(w.style.top),
+          rw=parseInt(w.style.width), rh=parseInt(w.style.height);
+    if(nx+40>rx && nx<rx+rw && ny+40>ry && ny<ry+rh){
       collide=true;
-      }
-    });
-    if(!collide){
-      player.x = nextX;
-      player.y = nextY;
     }
+  });
+
+  if(!collide){
+    player.style.left = nx+"px";
+    player.style.top = ny+"px";
+  }
+
+  // проверка победы
+  const gx = parseInt(goal.style.left), gy=parseInt(goal.style.top);
+  if(nx+40>gx && nx<gx+50 && ny+40>gy && ny<gy+50){
+    mazeContainer.classList.add("hidden");
+    showCongrats();
   }
 });
 
@@ -196,31 +225,18 @@ function showCongrats(){
   msg.classList.remove("hidden");
   document.getElementById("messageText").innerText="Поздравляю, ты прошёл! С меня 3 желания, йееееееей!";
 
-  bubbles=[];
-  for(let i=0;i<50;i++){
-    bubbles.push({
-      x: Math.random()*bubbleCanvas.width,
-      y: Math.random()*bubbleCanvas.height,
-      r: Math.random()*20+10,
-      dx: (Math.random()-0.5)*2,
-      dy: -Math.random()*2
-    });
+  // создаём мыльные пузыри
+  for(let i=0;i<30;i++){
+    const b = document.createElement("div");
+    b.className="bubble";
+    b.style.left = Math.random()*window.innerWidth+"px";
+    b.style.top = window.innerHeight+"px";
+    b.style.width = b.style.height = (Math.random()*30+10)+"px";
+    b.style.animationDuration = (Math.random()*3+2)+"s";
+    document.body.appendChild(b);
   }
-  animateBubbles();
-}
-
-function animateBubbles(){
-  bctx.clearRect(0,0,bubbleCanvas.width,bubbleCanvas.height);
-  bubbles.forEach(b=>{
-    b.x += b.dx;
-    b.y += b.dy;
-    bctx.beginPath();
-    bctx.fillStyle = "rgba(173,216,230,0.7)";
-    bctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-    bctx.fill();
-  });
-  requestAnimationFrame(animateBubbles);
 }
 </script>
+
 </body>
 </html>
