@@ -9,9 +9,10 @@
     margin:0;
     font-family: Comic Sans MS, Arial, sans-serif;
     background: linear-gradient(#87ceeb 0%, #ffe066 60%, #7CFC00 100%);
-    overflow: hidden;
+    overflow-y: auto;
     text-align: center;
     position: relative;
+    min-height: 100vh;
   }
 
   .sun{
@@ -29,14 +30,15 @@
   #gameContainer{
     position:relative;
     margin: 20px auto;
-    width: 500px;
+    width: 550px;
     text-align:center;
     z-index:1;
+    padding-bottom:50px;
   }
 
   table{
     border-collapse: collapse;
-    margin: 0 auto;
+    margin: 10px auto;
     user-select:none;
   }
 
@@ -51,9 +53,9 @@
   .enemyCell{ background:#000; }
 
   .capybara{
-    width:40px; height:40px;
+    width:45px; height:45px;
     position:absolute;
-    top:5px; left:5px;
+    top:2px; left:2px;
     pointer-events:none;
   }
 
@@ -87,9 +89,11 @@
   }
 
   .chocolate{
-    position:absolute;
-    width:50px; height:50px;
+    position:fixed;
+    width:70px; height:70px;
     pointer-events:none;
+    transition: transform 1s ease;
+    z-index:1600;
   }
 </style>
 </head>
@@ -129,7 +133,7 @@ function createBoard(board, isEnemy=false){
       const td = document.createElement("td");
       td.dataset.row=i;
       td.dataset.col=j;
-      td.className = isEnemy?'':'playerCell';
+      td.className = isEnemy?'enemyCell':'playerCell';
       tr.appendChild(td);
     }
     board.appendChild(tr);
@@ -155,19 +159,27 @@ function placeCapybaras(board, count){
 // эффекты при попадании
 function effects(cell){
   hitSound.play();
+
+  // шоколадка падает сверху
   const choc = document.createElement("img");
   choc.src="https://snickersni.kz/i/packs/dushnila.png";
   choc.className="chocolate";
-  choc.style.left = cell.offsetLeft+"px";
-  choc.style.top = cell.offsetTop+"px";
+  choc.style.left = (cell.getBoundingClientRect().left) + "px";
+  choc.style.top = "-80px";
   document.body.appendChild(choc);
-  setTimeout(()=>document.body.removeChild(choc),1000);
+  // падаем вниз на позицию клетки
+  setTimeout(()=>{
+    choc.style.transform = `translateY(${cell.getBoundingClientRect().top + 10}px)`;
+  },50);
+  setTimeout(()=>document.body.removeChild(choc),1200);
 
-  for(let i=0;i<5;i++){
+  // пузырьки
+  for(let i=0;i<8;i++){
     const b = document.createElement("div");
     b.className="bubble";
-    b.style.left = (cell.offsetLeft+Math.random()*50)+"px";
-    b.style.top = (cell.offsetTop+Math.random()*50)+"px";
+    b.style.width=b.style.height = (50+Math.random()*40)+"px";
+    b.style.left = (cell.getBoundingClientRect().left+Math.random()*50)+"px";
+    b.style.top = (cell.getBoundingClientRect().top+Math.random()*50)+"px";
     document.body.appendChild(b);
     setTimeout(()=>document.body.removeChild(b),6000);
   }
@@ -189,11 +201,13 @@ enemyBoard.addEventListener("click", e=>{
     if(checkWin(enemyBoard)){
       winSound.play();
       letter.style.display="block";
-      for(let i=0;i<50;i++){
+      // финальные пузырьки
+      for(let i=0;i<60;i++){
         const b = document.createElement("div");
         b.className="bubble";
+        b.style.width=b.style.height = (50+Math.random()*40)+"px";
         b.style.left = Math.random()*window.innerWidth+"px";
-        b.style.top = window.innerHeight+"px";
+        b.style.top = window.innerHeight + "px";
         document.body.appendChild(b);
         setTimeout(()=>document.body.removeChild(b),6000);
       }
