@@ -1,173 +1,244 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Шашки с Капибарой</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Шашки с капибарой 🦫</title>
+
 <style>
-  body {
-    margin: 0;
-    font-family: Comic Sans MS, Arial, sans-serif;
-    background: linear-gradient(135deg, #fff7e6 0%, #ffd966 100%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    height: 100vh;
-    user-select: none;
-    text-align: center;
-  }
-  h2 { color:#6b4f4f; }
-  #capybara { width: 150px; margin: 10px; }
-  #board { display: grid; grid-template: repeat(8, 60px) / repeat(8, 60px); border: 5px solid #6b4f4f; }
-  .cell { width:60px; height:60px; }
-  .black { background:#6b4f4f; }
-  .white { background:#fff; }
-  .piece { width: 50px; height:50px; border-radius:50%; margin:5px; display:flex; align-items:center; justify-content:center; cursor:pointer; }
-  .player { background:white; }
-  .bot { background:black; }
-  .selected { outline:3px solid yellow; }
+body{
+  margin:0;
+  font-family: Comic Sans MS, Arial, sans-serif;
+  background: linear-gradient(135deg,#fff7e6,#ffd966);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  min-height:100vh;
+}
+
+h2{color:#6b4f4f;margin:10px;}
+
+#capy{
+  width:140px;
+}
+
+#board{
+  display:grid;
+  grid-template-columns:repeat(8,60px);
+  grid-template-rows:repeat(8,60px);
+  border:5px solid #6b4f4f;
+  margin-top:15px;
+}
+
+.cell{
+  width:60px;
+  height:60px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.cell.dark{background:#6b4f4f;}
+.cell.light{background:#f6e8d5;}
+
+.piece{
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  cursor:pointer;
+}
+
+.player{background:white;}
+.bot{background:black;}
+
+.selected{
+  outline:4px solid yellow;
+}
+
+/* экран конца */
+#endScreen{
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.75);
+  color:white;
+  font-size:30px;
+  align-items:center;
+  justify-content:center;
+  flex-direction:column;
+  z-index:9999;
+}
 </style>
 </head>
+
 <body>
 
-<img id="capybara" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара" />
+<h2>Шашки с капибарой</h2>
+<img id="capy" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png">
 
-<h2>Играем в шашки</h2>
 <div id="board"></div>
 
-<script>
-const board = document.getElementById("board");
-const SIZE = 8;
-let selected = null;
-let cells = [];
-let pieces = [];
+<div id="endScreen">
+  <div id="endText"></div>
+  <img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" width="180">
+</div>
 
-// Создаем доску и шашки
+<audio id="eatSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_3c3a4d8d6e.mp3"></audio>
+
+<script>
+const SIZE=8;
+const board=document.getElementById("board");
+let cells=[];
+let pieces=[];
+let selected=null;
+let playerTurn=true;
+
+// ---------- СОЗДАНИЕ ДОСКИ ----------
 for(let r=0;r<SIZE;r++){
   cells[r]=[];
   pieces[r]=[];
   for(let c=0;c<SIZE;c++){
-    const cell = document.createElement("div");
-    cell.classList.add("cell");
-    if((r+c)%2==1) cell.classList.add("black"); else cell.classList.add("white");
+    const cell=document.createElement("div");
+    cell.className="cell "+((r+c)%2?"dark":"light");
     board.appendChild(cell);
     cells[r][c]=cell;
-    let piece=null;
-    if(cell.classList.contains("black") && r<3){
-      piece = createPiece("bot"); cell.appendChild(piece);
-    } else if(cell.classList.contains("black") && r>4){
-      piece = createPiece("player"); cell.appendChild(piece);
+    pieces[r][c]=null;
+
+    if((r+c)%2 && r<3){
+      addPiece(r,c,"bot");
     }
-    pieces[r][c]=piece;
+    if((r+c)%2 && r>4){
+      addPiece(r,c,"player");
+    }
   }
 }
 
-// Создаем элемент шашки
-function createPiece(type){
-  const p = document.createElement("div");
-  p.classList.add("piece", type);
-  p.dataset.type = type;
-  p.onclick = () => selectPiece(p);
-  return p;
+// ---------- ФУНКЦИИ ----------
+function addPiece(r,c,type){
+  const p=document.createElement("div");
+  p.className="piece "+type;
+  p.dataset.type=type;
+  cells[r][c].appendChild(p);
+  pieces[r][c]=p;
+
+  if(type==="player"){
+    p.onclick=()=>selectPiece(p);
+  }
 }
 
-// Выбор и ход игрока
 function selectPiece(p){
-  if(p.dataset.type!="player") return;
+  if(!playerTurn) return;
   if(selected) selected.classList.remove("selected");
   selected=p;
   selected.classList.add("selected");
-  highlightMoves();
 }
 
-// Подсветка возможных ходов
-function highlightMoves(){
-  clearHighlights();
-  const pos = findPiece(selected);
-  const dirs = [[-1,-1],[-1,1]]; // игрок вверх
-  for(let [dr,dc] of dirs){
-    const nr=pos.r+dr, nc=pos.c+dc;
-    if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE){
-      if(!pieces[nr][nc]){
-        cells[nr][nc].classList.add("highlight");
-        cells[nr][nc].onclick = ()=>movePiece(selected,nr,nc);
-      } else if(pieces[nr][nc] && pieces[nr][nc].dataset.type=="bot"){
-        const jumpR = nr+dr, jumpC = nc+dc;
-        if(jumpR>=0 && jumpR<SIZE && jumpC>=0 && jumpC<SIZE && !pieces[jumpR][jumpC]){
-          cells[jumpR][jumpC].classList.add("highlight");
-          cells[jumpR][jumpC].onclick = ()=>movePiece(selected,jumpR,jumpC,[nr,nc]);
-        }
-      }
-    }
-  }
-}
-
-// Очистка подсветки
-function clearHighlights(){
-  for(let r=0;r<SIZE;r++)
-    for(let c=0;c<SIZE;c++){
-      cells[r][c].classList.remove("highlight");
-      cells[r][c].onclick = null;
-    }
-}
-
-// Найти позицию шашки
 function findPiece(p){
   for(let r=0;r<SIZE;r++)
     for(let c=0;c<SIZE;c++)
       if(pieces[r][c]===p) return {r,c};
 }
 
-// Ход шашки
-function movePiece(p, r, c, jump=null){
-  const pos=findPiece(p);
-  pieces[pos.r][pos.c]=null;
-  cells[pos.r][pos.c].removeChild(p);
-  pieces[r][c]=p;
-  cells[r][c].appendChild(p);
+board.onclick=e=>{
+  if(!selected || !playerTurn) return;
+  const cell=e.target.closest(".cell");
+  if(!cell) return;
+
+  const tr=[...board.children].indexOf(cell);
+  const r=Math.floor(tr/8);
+  const c=tr%8;
+
+  const {r:sr,c:sc}=findPiece(selected);
+  const dr=r-sr, dc=c-sc;
+
+  // обычный ход
+  if(dr===-1 && Math.abs(dc)===1 && !pieces[r][c]){
+    move(sr,sc,r,c);
+    return;
+  }
+
+  // съедение
+  if(dr===-2 && Math.abs(dc)===2){
+    const mr=sr-1, mc=sc+dc/2;
+    if(pieces[mr][mc]?.dataset.type==="bot" && !pieces[r][c]){
+      eat(sr,sc,r,c,mr,mc);
+    }
+  }
+};
+
+function move(sr,sc,tr,tc){
+  cells[sr][sc].removeChild(pieces[sr][sc]);
+  cells[tr][tc].appendChild(pieces[sr][sc]);
+  pieces[tr][tc]=pieces[sr][sc];
+  pieces[sr][sc]=null;
   selected.classList.remove("selected");
   selected=null;
-  clearHighlights();
-  if(jump){
-    const [jr,jc]=jump;
-    pieces[jr][jc].parentNode.removeChild(pieces[jr][jc]);
-    pieces[jr][jc]=null;
-  }
-  setTimeout(botMove,300);
+  playerTurn=false;
+  setTimeout(botMove,400);
 }
 
-// Логика хода бота (случайная из доступных)
+function eat(sr,sc,tr,tc,er,ec){
+  pieces[er][ec].remove();
+  pieces[er][ec]=null;
+  document.getElementById("eatSound").play();
+  move(sr,sc,tr,tc);
+  checkEnd();
+}
+
+// ---------- БОТ ----------
 function botMove(){
   let moves=[];
-  for(let r=0;r<SIZE;r++)
+  for(let r=0;r<SIZE;r++){
     for(let c=0;c<SIZE;c++){
-      const p=pieces[r][c];
-      if(p && p.dataset.type=="bot"){
-        const dirs=[[1,-1],[1,1]];
-        for(let [dr,dc] of dirs){
-          const nr=r+dr,nc=c+dc;
-          if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && !pieces[nr][nc]) moves.push({from:[r,c],to:[nr,nc]});
-          else if(nr>=0 && nr<SIZE && nc>=0 && nc<SIZE && pieces[nr][nc] && pieces[nr][nc].dataset.type=="player"){
-            const jumpR = nr+dr, jumpC=nc+dc;
-            if(jumpR>=0 && jumpR<SIZE && jumpC>=0 && jumpC<SIZE && !pieces[jumpR][jumpC])
-              moves.push({from:[r,c],to:[jumpR,jumpC],jump:[nr,nc]});
+      if(pieces[r][c]?.dataset.type==="bot"){
+        for(let dc of [-1,1]){
+          // атака
+          if(
+            pieces[r+1]?.[c+dc]?.dataset.type==="player" &&
+            !pieces[r+2]?.[c+2*dc]
+          ){
+            return botEat(r,c,r+2,c+2*dc,r+1,c+dc);
+          }
+          // обычный
+          if(!pieces[r+1]?.[c+dc]){
+            moves.push([r,c,r+1,c+dc]);
           }
         }
       }
     }
-  if(moves.length==0) return;
-  const m = moves[Math.floor(Math.random()*moves.length)];
-  const p = pieces[m.from[0]][m.from[1]];
-  pieces[m.from[0]][m.from[1]]=null;
-  cells[m.from[0]][m.from[1]].removeChild(p);
-  pieces[m.to[0]][m.to[1]]=p;
-  cells[m.to[0]][m.to[1]].appendChild(p);
-  if(m.jump){
-    const [jr,jc]=m.jump;
-    pieces[jr][jc].parentNode.removeChild(pieces[jr][jc]);
-    pieces[jr][jc]=null;
   }
+  if(moves.length){
+    const m=moves[Math.floor(Math.random()*moves.length)];
+    move(m[0],m[1],m[2],m[3]);
+  }
+  playerTurn=true;
+}
+
+function botEat(sr,sc,tr,tc,er,ec){
+  pieces[er][ec].remove();
+  pieces[er][ec]=null;
+  document.getElementById("eatSound").play();
+  move(sr,sc,tr,tc);
+  checkEnd();
+}
+
+// ---------- КОНЕЦ ИГРЫ ----------
+function checkEnd(){
+  let p=0,b=0;
+  for(let r=0;r<SIZE;r++)
+    for(let c=0;c<SIZE;c++){
+      if(pieces[r][c]?.dataset.type==="player") p++;
+      if(pieces[r][c]?.dataset.type==="bot") b++;
+    }
+
+  if(b===0) showEnd("🏆 ПОБЕДА! Капибара гордится тобой 🦫");
+  if(p===0) showEnd("😈 ПОРАЖЕНИЕ… Капибара в шоке");
+}
+
+function showEnd(text){
+  document.getElementById("endText").innerText=text;
+  document.getElementById("endScreen").style.display="flex";
 }
 </script>
 </body>
