@@ -3,142 +3,162 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Шашки с капибарой</title>
+<title>Капибара Шашки</title>
 <style>
   body {
     margin:0;
     font-family: Comic Sans MS, Arial, sans-serif;
     background: linear-gradient(135deg,#fff7e6 0%,#ffd966 100%);
-    text-align:center;
     display:flex;
     flex-direction:column;
     align-items:center;
+    justify-content:center;
+    height:100vh;
   }
   h2 {color:#6b4f4f;}
   #board {
     display:grid;
     grid-template-columns: repeat(8, 60px);
     grid-template-rows: repeat(8, 60px);
-    margin: 20px auto;
-    border: 4px solid #6b4f4f;
+    border:5px solid #6b4f4f;
+    border-radius:12px;
   }
   .cell {
     width:60px; height:60px;
     display:flex; align-items:center; justify-content:center;
   }
-  .white { background:#eee; }
-  .black { background:#6b4f4f; }
-  .piece {
-    width:45px; height:45px;
-    border-radius:50%;
-    cursor:pointer;
-    display:flex; align-items:center; justify-content:center;
-    font-weight:bold;
+  .black {background:#6b4f4f;}
+  .white {background:#ffd966;}
+  .piece {width:40px; height:40px; border-radius:50%; cursor:pointer;}
+  .player {background:#fff;}
+  .bot {background:#000;}
+  #capy {
+    width:120px;
+    margin-bottom:20px;
   }
-  .player { background:white; }
-  .bot { background:black; }
-  .selected { outline:3px solid yellow; }
-  img { width:120px; margin-top:20px; }
 </style>
 </head>
 <body>
 
-<h2>🦫 Шашки с капибарой!</h2>
-<img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара">
+<h2>🦫 Капибара Шашки</h2>
+<img id="capy" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара">
 
 <div id="board"></div>
 
 <script>
-const boardEl = document.getElementById('board');
+const boardEl = document.getElementById("board");
 let board = [];
-let selectedCell = null;
 
-// создаём доску и расставляем шашки
-function initBoard(){
+// Создаем доску и шашки
+function initBoard() {
   board = Array(8).fill(null).map(()=>Array(8).fill(null));
   for(let r=0;r<3;r++){
     for(let c=0;c<8;c++){
-      if((r+c)%2===1) board[r][c]="bot";
+      if((r+c)%2) board[r][c]="bot";
     }
   }
   for(let r=5;r<8;r++){
     for(let c=0;c<8;c++){
-      if((r+c)%2===1) board[r][c]="player";
+      if((r+c)%2) board[r][c]="player";
     }
   }
   renderBoard();
 }
 
-// отрисовка доски
 function renderBoard(){
   boardEl.innerHTML="";
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
-      const cell = document.createElement('div');
-      cell.className='cell '+((r+c)%2===0?'white':'black');
-      cell.dataset.r=r; cell.dataset.c=c;
-      cell.onclick = ()=>cellClick(r,c);
-      const piece = board[r][c];
-      if(piece){
-        const p = document.createElement('div');
-        p.className='piece '+piece+(selectedCell && selectedCell[0]===r && selectedCell[1]===c?' selected':'');
-        cell.appendChild(p);
+      const cell = document.createElement("div");
+      cell.className="cell "+((r+c)%2?"black":"white");
+      if(board[r][c]){
+        const piece = document.createElement("div");
+        piece.className="piece "+board[r][c];
+        cell.appendChild(piece);
       }
       boardEl.appendChild(cell);
     }
   }
 }
 
-// ход игрока
-function cellClick(r,c){
-  const piece = board[r][c];
-  if(selectedCell){
-    const [sr,sc] = selectedCell;
-    const dr = r-sr; const dc = c-sc;
-    if(!piece && Math.abs(dr)===1 && Math.abs(dc)===1){ // обычный ход
-      board[r][c]="player"; board[sr][sc]=null;
-      selectedCell=null; renderBoard(); setTimeout(botMove,300); return;
-    }
-    if(!piece && Math.abs(dr)===2 && Math.abs(dc)===2){ // прыжок
-      const jr=sr+dr/2, jc=sc+dc/2;
-      if(board[jr][jc]==="bot"){
-        board[jr][jc]=null;
-        board[r][c]="player"; board[sr][sc]=null;
-        selectedCell=null; renderBoard(); setTimeout(botMove,300); return;
-      }
-    }
-    selectedCell=null; renderBoard(); // отмена
-  } else if(piece==="player"){
-    selectedCell=[r,c]; renderBoard();
-  }
-}
-
-// бот ходит
-function botMove(){
+// Проверка на съедение и обычный ход
+function botMove() {
   const botPieces=[];
   for(let r=0;r<8;r++){
     for(let c=0;c<8;c++){
       if(board[r][c]==="bot") botPieces.push([r,c]);
     }
   }
-  for(let move of botPieces){
-    const [r,c]=move;
+
+  // 1. Ищем атаки
+  for(let [r,c] of botPieces){
     const dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
     for(let [dr,dc] of dirs){
       const nr=r+dr, nc=c+dc;
-      // обычный ход
-      if(nr>=0 && nr<8 && nc>=0 && nc<8 && !board[nr][nc]){
-        board[nr][nc]="bot"; board[r][c]=null; renderBoard(); return;
+      const jr=r+2*dr, jc=c+2*dc;
+      if(nr>=0 && nr<8 && nc>=0 && nc<8 && jr>=0 && jr<8 && jc>=0 && jc<8){
+        if(board[nr][nc]==="player" && !board[jr][jc]){
+          board[jr][jc]="bot";
+          board[r][c]=null;
+          board[nr][nc]=null;
+          renderBoard();
+          return;
+        }
       }
-      // прыжок и съедание
-      if(nr+dr>=0 && nr+dr<8 && nc+dc>=0 && nc+dc<8 && board[nr][nc]==="player" && !board[nr+dr][nc+dc]){
-        board[nr+dr][nc+dc]="bot"; board[r][c]=null; board[nr][nc]=null; renderBoard(); return;
+    }
+  }
+
+  // 2. Обычный ход
+  for(let [r,c] of botPieces){
+    const dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
+    for(let [dr,dc] of dirs){
+      const nr=r+dr, nc=c+dc;
+      if(nr>=0 && nr<8 && nc>=0 && nc<8 && !board[nr][nc]){
+        board[nr][nc]="bot";
+        board[r][c]=null;
+        renderBoard();
+        return;
       }
     }
   }
 }
 
+// Игрок ходит стрелками
+let selected=null;
+document.addEventListener("keydown",e=>{
+  if(!selected){
+    // Выбираем первую белую шашку
+    outer: for(let r=0;r<8;r++){
+      for(let c=0;c<8;c++){
+        if(board[r][c]==="player"){selected=[r,c]; break outer;}
+      }
+    }
+  } else {
+    let [r,c]=selected;
+    let nr=r, nc=c;
+    if(e.key==="ArrowUp") nr--; else if(e.key==="ArrowDown") nr++; 
+    else if(e.key==="ArrowLeft") nc--; else if(e.key==="ArrowRight") nc++;
+    if(nr>=0 && nr<8 && nc>=0 && nc<8){
+      // Съедение
+      const dr=nr-r, dc=nc-c;
+      const jr=nr+dr, jc=nc+dc;
+      if(board[nr][nc]==="bot" && jr>=0 && jr<8 && jc>=0 && jc<8 && !board[jr][jc]){
+        board[jr][jc]="player";
+        board[r][c]=null;
+        board[nr][nc]=null;
+      } else if(!board[nr][nc]){
+        board[nr][nc]="player";
+        board[r][c]=null;
+      }
+      selected=[nr,nc];
+      renderBoard();
+      setTimeout(botMove,300);
+    }
+  }
+});
+
 initBoard();
 </script>
+
 </body>
 </html>
