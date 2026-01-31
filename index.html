@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Капибарный лабиринт</title>
 <style>
-  /* Общий стиль */
   body {
     margin: 0;
     font-family: Comic Sans MS, Arial, sans-serif;
     background: linear-gradient(135deg, #fff7e6 0%, #ffd966 100%);
     overflow: hidden;
     user-select: none;
+    text-align: center;
   }
   .container {
     width: 520px;
@@ -19,7 +19,6 @@
     background: rgba(255 255 255 / 0.9);
     border-radius: 20px;
     padding: 20px;
-    text-align: center;
     box-shadow: 0 0 15px #b8860baa;
     position: relative;
     z-index: 10;
@@ -50,13 +49,19 @@
     width: 60%;
   }
 
+  #capybaraQuestion {
+    width: 180px;
+    margin-top: 15px;
+    user-select: none;
+  }
+
   /* Лабиринт */
   #maze {
     position: relative;
     width: 500px;
     height: 500px;
     margin: 20px auto 0;
-    background: #a3d9a5; /* трава */
+    background: #a3d9a5;
     border: 5px solid #6b4f4f;
     border-radius: 15px;
     box-shadow: inset 0 0 15px #558855aa;
@@ -66,13 +71,10 @@
     background: #6b4f4f;
     border-radius: 6px;
   }
-
-  /* Цель - шоколадка Snickers */
   #goal {
     position: absolute;
     width: 60px;
     height: 30px;
-    background: transparent;
     cursor: pointer;
   }
   #goal img {
@@ -81,8 +83,6 @@
     user-select: none;
     pointer-events: none;
   }
-
-  /* Игрок - капибара */
   #player {
     position: absolute;
     width: 60px;
@@ -111,15 +111,62 @@
       opacity: 0;
     }
   }
+
+  /* Скрытие элементов */
+  .hidden {
+    display: none;
+  }
+
+  /* Кнопка для ответа */
+  #submitBtn {
+    background: #6b4f4f;
+    color: white;
+    border-radius: 12px;
+    border: none;
+    padding: 12px 25px;
+    cursor: pointer;
+  }
+
+  /* Капибара на вопросе */
+  #capybaraQuestion {
+    margin-top: 15px;
+  }
+
+  /* Плеер YouTube - небольшой */
+  #musicContainer {
+    margin-top: 20px;
+    width: 320px;
+    height: 180px;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 0 15px #b8860baa;
+  }
 </style>
 </head>
 <body>
 
-<div class="container" id="colorScreen">
-  <h2>🦫 Мой любимый цвет?</h2>
-  <input id="colorInput" placeholder="Введите цвет" autocomplete="off" />
+<div class="container" id="questionScreen">
+  <h2>🦫 Твоя любимка?</h2>
+  <img id="capybaraQuestion" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара" width="180" />
   <br />
-  <button onclick="checkColor()">Ответить</button>
+  <input type="text" id="answerInput" placeholder="Введите имя" autocomplete="off" />
+  <br />
+  <button id="submitBtn" onclick="checkAnswer()">Ответить</button>
+
+  <div id="musicContainer">
+    <iframe
+      id="ytplayer"
+      type="text/html"
+      width="320"
+      height="180"
+      src="https://www.youtube.com/embed/d1_Mk7l8wjk?start=13&autoplay=1&mute=0&controls=1&loop=1&playlist=d1_Mk7l8wjk"
+      frameborder="0"
+      allow="autoplay; encrypted-media"
+      allowfullscreen
+    ></iframe>
+  </div>
 </div>
 
 <div class="container hidden" id="messageScreen">
@@ -133,12 +180,15 @@
 </div>
 
 <script>
-  const colorScreen = document.getElementById("colorScreen");
+  const questionScreen = document.getElementById("questionScreen");
   const messageScreen = document.getElementById("messageScreen");
   const mazeContainer = document.getElementById("mazeContainer");
   const messageText = document.getElementById("messageText");
   const maze = document.getElementById("maze");
+  const answerInput = document.getElementById("answerInput");
+  const submitBtn = document.getElementById("submitBtn");
 
+  // Игрок и цель
   const player = document.createElement("img");
   player.id = "player";
   player.src = "https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png";
@@ -153,20 +203,26 @@
   goal.appendChild(goalImg);
   maze.appendChild(goal);
 
-  let walls = [];
-
+  // Лабиринт - исправленный с путями
   const wallsData = [
+    // рамка
     {top: 0, left: 0, width: 500, height: 20},
     {top: 0, left: 0, width: 20, height: 500},
     {top: 480, left: 0, width: 500, height: 20},
     {top: 0, left: 480, width: 20, height: 500},
+    // горизонтальные стены
     {top: 100, left: 20, width: 460, height: 20},
     {top: 200, left: 0, width: 380, height: 20},
     {top: 300, left: 120, width: 380, height: 20},
     {top: 400, left: 0, width: 380, height: 20},
 
-    {top: 20, left: 100, width: 20, height: 380},
-    {top: 120, left: 200, width: 20, height: 380},
+    {top: 20, left: 100, width: 20, height: 80}, // сделал коридор
+    {top: 120, left: 100, width: 20, height: 100},
+    {top: 220, left: 100, width: 20, height: 100},
+    {top: 320, left: 100, width: 20, height: 80},
+
+    {top: 20, left: 200, width: 20, height: 180},
+    {top: 200, left: 300, width: 20, height: 20},
     {top: 220, left: 300, width: 20, height: 180},
     {top: 320, left: 400, width: 20, height: 180},
     {top: 420, left: 100, width: 20, height: 80},
@@ -179,8 +235,9 @@
     {top: 200, left: 480, width: 20, height: 50},
   ];
 
-  let playerPos = {top: 40, left: 40};
+  let walls = [];
   const playerSize = 60;
+  let playerPos = {top: 40, left: 40};
 
   function checkCollision(x, y) {
     for(let w of walls) {
@@ -223,10 +280,11 @@
   }
 
   function startMaze() {
-    colorScreen.classList.add("hidden");
+    questionScreen.classList.add("hidden");
     messageScreen.classList.add("hidden");
     mazeContainer.classList.remove("hidden");
 
+    // Очищаем стены
     walls.forEach(w => maze.removeChild(w));
     walls = [];
 
@@ -249,20 +307,20 @@
     goal.style.left = "420px";
   }
 
-  function checkColor() {
-    const val = document.getElementById("colorInput").value.toLowerCase().trim();
-    if(val === "фиолетовый") {
+  function checkAnswer() {
+    const answer = answerInput.value.toLowerCase().trim();
+    if(answer === "лиса") {
       messageText.innerText = "Chill 😎";
       messageScreen.classList.remove("hidden");
-      colorScreen.classList.add("hidden");
+      questionScreen.classList.add("hidden");
       setTimeout(() => {
         messageScreen.classList.add("hidden");
         startMaze();
       }, 1500);
     } else {
-      messageText.innerText = "Ты серьезно? Настолько плохо меня знаешь?";
+      messageText.innerText = "Думаю, твоя любимка тебя не простит 😂";
       messageScreen.classList.remove("hidden");
-      colorScreen.classList.add("hidden");
+      questionScreen.classList.add("hidden");
     }
   }
 
@@ -300,4 +358,3 @@
 
 </body>
 </html>
-
