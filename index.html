@@ -2,120 +2,87 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<title>Капибара и лабиринт</title>
+<title>Капибара и шоколадка</title>
 <style>
-body {margin:0; font-family: 'Comic Sans MS', Arial, sans-serif; text-align:center; background:#fff8dc;}
-.screen {max-width:500px; margin:20px auto; padding:20px; border-radius:20px; background:rgba(255,255,255,0.95); box-shadow:0 0 15px #ccc;}
-input {font-size:18px; padding:8px; border-radius:10px; border:2px solid #333; width:60%;}
-button {font-size:18px; padding:10px 20px; border:none; border-radius:12px; cursor:pointer; margin-left:10px;}
-iframe {width:100%; height:280px; border:none; border-radius:12px;}
-#mazeContainer {position:relative; width:400px; height:400px; background:#b2d8b2; margin:20px auto; border-radius:20px; border:10px solid #5c4033; box-sizing:border-box; touch-action:none;}
-.wall {position:absolute; background:#5c4033; border-radius:5px;}
-#player {position:absolute; width:50px; height:50px; background-image:url("https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png"); background-size:contain; background-repeat:no-repeat; left:10px; top:10px; transition:left 0.1s linear, top 0.1s linear; z-index:10;}
-#goal {position:absolute; width:100px; height:35px; background-image:url("https://snickersni.kz/i/packs/dushnila.png"); background-size:contain; background-repeat:no-repeat; bottom:10px; right:10px;}
+body {margin:0; font-family:'Comic Sans MS', Arial, sans-serif; background:#ffe066; text-align:center; overflow:hidden;}
+#gameScreen {position:relative; width:100vw; height:100vh;}
+#capy {position:absolute; width:150px; height:150px; background-image:url("https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png"); background-size:contain; background-repeat:no-repeat; top:50%; left:50%; transform:translate(-50%,-50%);}
+#snickers {position:absolute; width:100px; height:40px; background-image:url("https://snickersni.kz/i/packs/dushnila.png"); background-size:contain; background-repeat:no-repeat; top:100px; left:100px;}
 #bubblesCanvas {position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;}
+iframe {position:absolute; top:10px; left:50%; transform:translateX(-50%); width:320px; height:180px; border:none; border-radius:12px;}
 </style>
 </head>
 <body>
-
-<!-- СТРАНИЦА С ВОПРОСОМ -->
-<div id="questionScreen" class="screen">
-  <h2>🦫 Твоя любимка?</h2>
-  <img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" style="width:150px; height:auto; margin-bottom:10px;">
-  <br>
-  <input id="answerInput" placeholder="Введите ответ" autocomplete="off"/>
-  <button onclick="checkAnswer()">Ответить</button>
-  <p>Пока думаешь — слушай музыку!</p>
-  <iframe id="musicVideo" src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+<div id="gameScreen">
+  <div id="capy"></div>
+  <div id="snickers"></div>
 </div>
-
-<!-- ЛАБИРИНТ -->
-<div id="mazeScreen" class="screen" style="display:none;">
-  <h3>Поймай шоколадку Snickers! 🍫</h3>
-  <div id="mazeContainer">
-    <div id="player"></div>
-    <div id="goal"></div>
-  </div>
-</div>
-
-<!-- СООБЩЕНИЕ ПОСЛЕ -->
-<div id="messageScreen" class="screen" style="display:none;">
-  <h2 id="messageText"></h2>
-</div>
-
 <canvas id="bubblesCanvas"></canvas>
 
+<!-- Музыка LISA -->
+<iframe src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+
 <script>
-const questionScreen = document.getElementById("questionScreen");
-const answerInput = document.getElementById("answerInput");
-const mazeScreen = document.getElementById("mazeScreen");
-const mazeContainer = document.getElementById("mazeContainer");
-const player = document.getElementById("player");
-const goal = document.getElementById("goal");
-const messageScreen = document.getElementById("messageScreen");
-const messageText = document.getElementById("messageText");
+const capy = document.getElementById("capy");
+const snickers = document.getElementById("snickers");
 const bubblesCanvas = document.getElementById("bubblesCanvas");
 const ctx = bubblesCanvas.getContext("2d");
 bubblesCanvas.width = window.innerWidth;
 bubblesCanvas.height = window.innerHeight;
 
-let playerPos = {left:10, top:10};
-const playerSize = 50;
-const walls = [];
+// Позиции капибары
+let posX = window.innerWidth/2 - 75;
+let posY = window.innerHeight/2 - 75;
 
-// Логичный проходимый лабиринт
-const wallData = [
-  {left:0, top:0, width:400, height:10},    
-  {left:0, top:0, width:10, height:400},    
-  {left:0, top:390, width:400, height:10},  
-  {left:390, top:0, width:10, height:400},  
-  {left:60, top:10, width:10, height:150},
-  {left:120, top:100, width:10, height:250},
-  {left:180, top:0, width:10, height:300},
-  {left:240, top:100, width:10, height:300},
-  {left:300, top:0, width:10, height:250},
-  {left:360, top:150, width:10, height:240},
-];
+// Управление игроком
+let keys = {ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false};
+document.addEventListener("keydown", (e)=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=true;});
+document.addEventListener("keyup", (e)=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=false;});
 
-function createWalls() {
-  walls.forEach(w=> mazeContainer.removeChild(w.el));
-  walls.length=0;
-  wallData.forEach(w=>{
-    const wall = document.createElement("div");
-    wall.className="wall";
-    wall.style.left=w.left+"px";
-    wall.style.top=w.top+"px";
-    wall.style.width=w.width+"px";
-    wall.style.height=w.height+"px";
-    mazeContainer.appendChild(wall);
-    walls.push({...w, el:wall});
-  });
-}
+// Функция движения капибары
+function moveCapy() {
+  // Случайное движение
+  let dx = (Math.random()-0.5)*5;
+  let dy = (Math.random()-0.5)*5;
 
-function checkCollision(nx, ny) {
-  const playerRect = {left:nx, top:ny, right:nx+playerSize, bottom:ny+player.offsetHeight};
-  for(let w of walls){
-    const wallRect={left:w.left, top:w.top, right:w.left+w.width, bottom:w.top+w.height};
-    if(!(playerRect.right<=wallRect.left || playerRect.left>=wallRect.right || playerRect.bottom<=wallRect.top || playerRect.top>=wallRect.bottom)){
-      return true;
-    }
+  // Управление стрелками
+  const speed = 7;
+  if(keys.ArrowUp) dy -= speed;
+  if(keys.ArrowDown) dy += speed;
+  if(keys.ArrowLeft) dx -= speed;
+  if(keys.ArrowRight) dx += speed;
+
+  posX += dx;
+  posY += dy;
+
+  // Границы экрана
+  if(posX<0) posX=0;
+  if(posY<0) posY=0;
+  if(posX>window.innerWidth-150) posX=window.innerWidth-150;
+  if(posY>window.innerHeight-150) posY=window.innerHeight-150;
+
+  capy.style.left = posX+"px";
+  capy.style.top = posY+"px";
+
+  // Проверка на столкновение со Snickers
+  const capyRect = capy.getBoundingClientRect();
+  const snickRect = snickers.getBoundingClientRect();
+  if(!(capyRect.right<snickRect.left || capyRect.left>snickRect.right || capyRect.bottom<snickRect.top || capyRect.top>snickRect.bottom)){
+    win();
   }
-  return false;
+
+  requestAnimationFrame(moveCapy);
 }
 
-function checkWin(nx, ny) {
-  const goalRect={left:goal.offsetLeft, top:goal.offsetTop, right:goal.offsetLeft+goal.offsetWidth, bottom:goal.offsetTop+goal.offsetHeight};
-  const playerRect={left:nx, top:ny, right:nx+playerSize, bottom:ny+player.offsetHeight};
-  return !(playerRect.right<goalRect.left || playerRect.left>goalRect.right || playerRect.bottom<goalRect.top || playerRect.top>goalRect.bottom);
+// Победа
+function win() {
+  alert("Поздравляю! Капибара съела Snickers! 🎉");
+  createBubbles(300);
+  capy.style.display="none";
+  snickers.style.display="none";
 }
 
-function showMessage(text) {
-  mazeScreen.style.display="none";
-  messageScreen.style.display="block";
-  messageText.innerText=text;
-  createBubbles(150);
-}
-
+// Пузырьки
 function createBubbles(count){
   let bubbles=[];
   for(let i=0;i<count;i++){
@@ -136,66 +103,9 @@ function createBubbles(count){
   draw();
 }
 
-function checkAnswer(){
-  const ans = answerInput.value.trim().toLowerCase();
-  if(ans==="лиса"){
-    alert("Chill");
-    questionScreen.style.display="none";
-    mazeScreen.style.display="block";
-    createWalls();
-  } else {
-    alert("Думаю, твоя любимка тебя не простит 😆");
-    answerInput.value="";
-  }
-}
-
-// Управление для ПК
-document.addEventListener("keydown", e=>{
-  movePlayer(e.key);
-});
-
-// Управление для мобильного (свайпы)
-let touchStart={x:0, y:0};
-mazeContainer.addEventListener("touchstart", e=>{
-  const t=e.touches[0]; touchStart={x:t.clientX, y:t.clientY};
-});
-mazeContainer.addEventListener("touchend", e=>{
-  const t=e.changedTouches[0];
-  const dx=t.clientX-touchStart.x;
-  const dy=t.clientY-touchStart.y;
-  if(Math.abs(dx)>Math.abs(dy)){
-    movePlayer(dx>0?"ArrowRight":"ArrowLeft");
-  } else {
-    movePlayer(dy>0?"ArrowDown":"ArrowUp");
-  }
-});
-
-function movePlayer(key){
-  if(mazeScreen.style.display==="none") return;
-  const step=10;
-  let nx=playerPos.left;
-  let ny=playerPos.top;
-  if(key==="ArrowUp") ny-=step;
-  else if(key==="ArrowDown") ny+=step;
-  else if(key==="ArrowLeft") nx-=step;
-  else if(key==="ArrowRight") nx+=step;
-
-  if(nx<0) nx=0;
-  if(ny<0) ny=0;
-  if(nx>400-playerSize) nx=400-playerSize;
-  if(ny>400-player.offsetHeight) ny=400-player.offsetHeight;
-
-  if(!checkCollision(nx,ny)){
-    playerPos.left=nx;
-    playerPos.top=ny;
-    player.style.left=nx+"px";
-    player.style.top=ny+"px";
-
-    if(checkWin(nx,ny)){
-      showMessage("Поздравляю, ты прошёл! С меня 3 желания, йееееееей!");
-    }
-  }
-}
+// Запуск
+moveCapy();
 </script>
 </body>
 </html>
+
