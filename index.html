@@ -2,309 +2,229 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Капибарный морской бой 🦫🍫</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Капибарный Морской Бой</title>
 <style>
-body{
-  margin:0;
-  font-family:Comic Sans MS, Arial;
-  text-align:center;
-  background:linear-gradient(#87ceeb,#ffe066);
-  overflow:hidden;
-}
-
-/* контейнеры */
-.container{
-  width:520px;
-  margin:20px auto;
-  background:rgba(255,255,255,.95);
-  border-radius:20px;
-  padding:20px;
-  box-shadow:0 0 20px rgba(0,0,0,.2);
-  position:relative;
-  z-index:5;
-}
-
-.hidden{display:none;}
-
-button,input{
-  font-size:18px;
-  padding:10px 20px;
-  border-radius:12px;
-  border:2px solid #6b4f4f;
-}
-
-button{
-  background:#6b4f4f;
-  color:white;
-  cursor:pointer;
-}
-
-/* доска */
-.board{
-  display:grid;
-  grid-template-columns:repeat(6,60px);
-  grid-template-rows:repeat(6,60px);
-  gap:6px;
-  justify-content:center;
-  margin:15px auto;
-}
-
-.cell{
-  width:60px;
-  height:60px;
-  background:#7ec8ff;
-  border-radius:10px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  cursor:pointer;
-}
-
-.cell img{width:46px;pointer-events:none;}
-
-.hit{background:#ff9aa2 !important;}
-.miss{background:#ddd !important;}
-
-h3{color:#6b4f4f}
-
-/* шоколадки и искры */
-.choco{
-  position:fixed;
-  top:-60px;
-  width:40px;
-  animation:fall 2.5s linear forwards;
-  z-index:1000;
-}
-
-.spark{
-  position:fixed;
-  width:8px;
-  height:8px;
-  background:gold;
-  border-radius:50%;
-  animation:spark 1.2s linear forwards;
-}
-
-@keyframes fall{
-  to{transform:translateY(110vh) rotate(360deg);}
-}
-
-@keyframes spark{
-  to{
-    transform:translateY(120px) scale(0);
-    opacity:0;
+  body {
+    margin:0;
+    font-family: Comic Sans MS, Arial, sans-serif;
+    background: linear-gradient(#87ceeb 0%, #ffe066 60%, #7CFC00 100%);
+    overflow: hidden;
+    text-align: center;
+    position: relative;
   }
-}
 
-/* пузыри */
-.bubble{
-  position:fixed;
-  bottom:-50px;
-  border-radius:50%;
-  background:rgba(255,255,255,.6);
-  animation:float 6s linear infinite;
-}
+  .sun{
+    position:fixed;
+    top:20px;
+    right:30px;
+    width:120px;
+    height:120px;
+    background:radial-gradient(circle, #fff700, #ffb300);
+    border-radius:50%;
+    box-shadow:0 0 40px #ffd700;
+    z-index:0;
+  }
 
-@keyframes float{
-  to{transform:translateY(-120vh);opacity:0;}
-}
+  #gameContainer{
+    position:relative;
+    margin: 20px auto;
+    width: 500px;
+    text-align:center;
+    z-index:1;
+  }
 
-/* солнце */
-.sun{
-  position:fixed;
-  top:20px;
-  right:20px;
-  width:120px;
-  height:120px;
-  background:yellow;
-  border-radius:50%;
-  box-shadow:0 0 40px gold;
-  z-index:0;
-}
+  table{
+    border-collapse: collapse;
+    margin: 0 auto;
+    user-select:none;
+  }
+
+  td{
+    width:50px; height:50px;
+    border:1px solid #333;
+    position: relative;
+    cursor:pointer;
+  }
+
+  .playerCell{ background:#fff; }
+  .enemyCell{ background:#000; }
+
+  .capybara{
+    width:40px; height:40px;
+    position:absolute;
+    top:5px; left:5px;
+    pointer-events:none;
+  }
+
+  #letter{
+    position:fixed;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:white;
+    padding:30px 40px;
+    border-radius:25px;
+    font-size:22px;
+    box-shadow:0 0 30px gold;
+    z-index:2000;
+    display:none;
+  }
+
+  .bubble{
+    position:fixed;
+    width:60px;
+    height:60px;
+    border-radius:50%;
+    background:radial-gradient(circle at 30% 30%, #fff, rgba(255,255,255,0.3));
+    animation:floatUp 6s linear forwards;
+    z-index:1500;
+  }
+
+  @keyframes floatUp{
+    0%{transform:translateY(0) scale(1);opacity:1;}
+    100%{transform:translateY(-800px) scale(1.5);opacity:0;}
+  }
+
+  .chocolate{
+    position:absolute;
+    width:50px; height:50px;
+    pointer-events:none;
+  }
 </style>
 </head>
-
 <body>
 
 <div class="sun"></div>
 
-<!-- ВОПРОС -->
-<div class="container" id="question">
-  <h2>🦫 Твоя любимка?</h2>
-  <img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" width="160">
-  <br><br>
-  <input id="answer" placeholder="Введите имя">
-  <br><br>
-  <button onclick="checkAnswer()">Ответить</button>
-
-  <iframe width="100%" height="230"
-    src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&loop=1&playlist=kbEC-AGr9n0"
-    allow="autoplay">
-  </iframe>
+<div id="gameContainer">
+  <h2>Капибарный Морской Бой 🦫🍫</h2>
+  <table id="playerBoard"></table>
+  <p>Кликните по полю врага, чтобы попасть в капибару!</p>
+  <table id="enemyBoard"></table>
 </div>
 
-<!-- СООБЩЕНИЕ -->
-<div class="container hidden" id="message">
-  <h2 id="msgText"></h2>
+<div id="letter">
+💌<br><br>
+Поздравляю, ты выиграл!<br>
+И с меня 3 желания 😏✨<br><br>
+Йееееееей!!!
 </div>
 
-<!-- ИГРА -->
-<div class="container hidden" id="game">
-  <h2>⚓ Морской бой с капибарами</h2>
-  <h3>Твои капибары</h3>
-  <div class="board" id="playerBoard"></div>
-
-  <h3>Капибары противника</h3>
-  <div class="board" id="botBoard"></div>
-</div>
+<audio id="hitSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_2b2c8c8a7b.mp3"></audio>
+<audio id="winSound" src="https://cdn.pixabay.com/audio/2022/03/10/audio_8b4cbb6d44.mp3"></audio>
 
 <script>
-const SIZE=6;
-const CAPY="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png";
-const CHOCO="https://snickersni.kz/i/packs/dushnila.png";
+const playerBoard = document.getElementById("playerBoard");
+const enemyBoard = document.getElementById("enemyBoard");
+const hitSound = document.getElementById("hitSound");
+const winSound = document.getElementById("winSound");
+const letter = document.getElementById("letter");
 
-let player=[],bot=[];
-let pAlive=3,bAlive=3;
-let turn=true;
-
-const q=document.getElementById("question");
-const m=document.getElementById("message");
-const msg=document.getElementById("msgText");
-const g=document.getElementById("game");
-
-function checkAnswer(){
-  if(document.getElementById("answer").value.toLowerCase().trim()==="лиса"){
-    msg.innerText="Chill 😎";
-    q.classList.add("hidden");
-    m.classList.remove("hidden");
-    setTimeout(()=>{m.classList.add("hidden");start();},1200);
-  }else{
-    msg.innerText="Думаю, твоя любимка тебя не простит 😂";
-    q.classList.add("hidden");
-    m.classList.remove("hidden");
+// создаем доски 10x10
+function createBoard(board, isEnemy=false){
+  for(let i=0;i<10;i++){
+    const tr = document.createElement("tr");
+    for(let j=0;j<10;j++){
+      const td = document.createElement("td");
+      td.dataset.row=i;
+      td.dataset.col=j;
+      td.className = isEnemy?'':'playerCell';
+      tr.appendChild(td);
+    }
+    board.appendChild(tr);
   }
 }
 
-function start(){
-  g.classList.remove("hidden");
-  init();
-}
-
-function init(){
-  const pb=document.getElementById("playerBoard");
-  const bb=document.getElementById("botBoard");
-  pb.innerHTML="";bb.innerHTML="";
-  player=[];bot=[];
-  pAlive=3;bAlive=3;turn=true;
-
-  for(let i=0;i<36;i++){
-    player[i]=false;bot[i]=false;
-
-    const pc=document.createElement("div");
-    pc.className="cell";pb.appendChild(pc);
-
-    const bc=document.createElement("div");
-    bc.className="cell";
-    bc.onclick=()=>shoot(i,bc);
-    bb.appendChild(bc);
-  }
-  place(player,pb,true);
-  place(bot,bb,false);
-}
-
-function place(arr,board,show){
-  let c=0;
-  while(c<3){
-    let i=Math.floor(Math.random()*36);
-    if(!arr[i]){
-      arr[i]=true;
-      if(show){
-        let img=document.createElement("img");
-        img.src=CAPY;
-        board.children[i].appendChild(img);
-      }
-      c++;
+// ставим капибар на доску
+function placeCapybaras(board, count){
+  const cells = [...board.querySelectorAll("td")];
+  let placed=0;
+  while(placed<count){
+    const cell = cells[Math.floor(Math.random()*cells.length)];
+    if(!cell.querySelector("img")){
+      const img = document.createElement("img");
+      img.src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png";
+      img.className="capybara";
+      cell.appendChild(img);
+      placed++;
     }
   }
 }
 
-function shoot(i,cell){
-  if(!turn||cell.classList.contains("hit")||cell.classList.contains("miss"))return;
-  if(bot[i]){
-    cell.classList.add("hit");
-    cell.innerHTML="🍫";
-    bot[i]=false;bAlive--;
-    effects();
-    checkEnd();
-  }else{
-    cell.classList.add("miss");
-    cell.innerHTML="•";
-    turn=false;
-    setTimeout(botTurn,700);
-  }
-}
+// эффекты при попадании
+function effects(cell){
+  hitSound.play();
+  const choc = document.createElement("img");
+  choc.src="https://snickersni.kz/i/packs/dushnila.png";
+  choc.className="chocolate";
+  choc.style.left = cell.offsetLeft+"px";
+  choc.style.top = cell.offsetTop+"px";
+  document.body.appendChild(choc);
+  setTimeout(()=>document.body.removeChild(choc),1000);
 
-function botTurn(){
-  let i;
-  do{i=Math.floor(Math.random()*36);}
-  while(
-    document.getElementById("playerBoard").children[i].classList.contains("hit")||
-    document.getElementById("playerBoard").children[i].classList.contains("miss")
-  );
-  const cell=document.getElementById("playerBoard").children[i];
-  if(player[i]){
-    cell.classList.add("hit");
-    cell.innerHTML="🍫";
-    player[i]=false;pAlive--;
-    effects();
-    checkEnd();
-  }else{
-    cell.classList.add("miss");
-    cell.innerHTML="•";
-  }
-  turn=true;
-}
-
-function effects(){
-  for(let i=0;i<6;i++){
-    const c=document.createElement("img");
-    c.src=CHOCO;
-    c.className="choco";
-    c.style.left=Math.random()*100+"vw";
-    document.body.appendChild(c);
-    setTimeout(()=>c.remove(),3000);
-
-    const s=document.createElement("div");
-    s.className="spark";
-    s.style.left=Math.random()*100+"vw";
-    s.style.top="0px";
-    document.body.appendChild(s);
-    setTimeout(()=>s.remove(),1500);
-  }
-}
-
-function checkEnd(){
-  if(bAlive===0){
-    g.classList.add("hidden");
-    msg.innerText="💌 Поздравляю, ты выиграл!\nС меня 3 желания, йееееееей!";
-    m.classList.remove("hidden");
-    bubbles();
-  }
-}
-
-function bubbles(){
-  for(let i=0;i<80;i++){
-    const b=document.createElement("div");
+  for(let i=0;i<5;i++){
+    const b = document.createElement("div");
     b.className="bubble";
-    let s=10+Math.random()*30;
-    b.style.width=b.style.height=s+"px";
-    b.style.left=Math.random()*100+"vw";
-    b.style.animationDuration=4+Math.random()*4+"s";
+    b.style.left = (cell.offsetLeft+Math.random()*50)+"px";
+    b.style.top = (cell.offsetTop+Math.random()*50)+"px";
     document.body.appendChild(b);
+    setTimeout(()=>document.body.removeChild(b),6000);
   }
 }
+
+// проверка победы
+function checkWin(board){
+  return [...board.querySelectorAll("td img")].length===0;
+}
+
+// логика клика по доске врага
+enemyBoard.addEventListener("click", e=>{
+  const cell = e.target.closest("td");
+  if(!cell) return;
+  const img = cell.querySelector("img");
+  if(img){
+    cell.removeChild(img);
+    effects(cell);
+    if(checkWin(enemyBoard)){
+      winSound.play();
+      letter.style.display="block";
+      for(let i=0;i<50;i++){
+        const b = document.createElement("div");
+        b.className="bubble";
+        b.style.left = Math.random()*window.innerWidth+"px";
+        b.style.top = window.innerHeight+"px";
+        document.body.appendChild(b);
+        setTimeout(()=>document.body.removeChild(b),6000);
+      }
+    }
+  } else {
+    // промах — ход врага
+    enemyTurn();
+  }
+});
+
+// простая логика врага
+function enemyTurn(){
+  const cells = [...playerBoard.querySelectorAll("td")];
+  const options = cells.filter(c=>!c.dataset.hit);
+  const target = options[Math.floor(Math.random()*options.length)];
+  target.dataset.hit="true";
+  const img = target.querySelector("img");
+  if(img){
+    target.removeChild(img);
+    effects(target);
+    if(checkWin(playerBoard)){
+      alert("Враг победил!");
+    }
+  }
+}
+
+// создаем доски и капибар
+createBoard(playerBoard,false);
+createBoard(enemyBoard,true);
+placeCapybaras(playerBoard,5);
+placeCapybaras(enemyBoard,5);
 </script>
 </body>
 </html>
