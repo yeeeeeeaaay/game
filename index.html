@@ -1,19 +1,20 @@
-<!DOCTYPE html>
+
+ <!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <title>Капибара и лабиринт</title>
 <style>
-  body {margin:0; font-family: 'Comic Sans MS', Arial, sans-serif; text-align:center; background:#fff8dc;}
-  .screen {max-width:500px; margin:20px auto; padding:20px; border-radius:20px; background:rgba(255,255,255,0.9); box-shadow:0 0 15px #ccc;}
-  input {font-size:18px; padding:8px; border-radius:10px; border:2px solid #333; width:60%;}
-  button {font-size:18px; padding:10px 20px; border:none; border-radius:12px; cursor:pointer; margin-left:10px;}
-  iframe {width:100%; height:280px; border:none; border-radius:12px;}
-  #mazeContainer {position:relative; width:500px; height:500px; background:#b2d8b2; margin-top:20px; border-radius:20px; border:20px solid #5c4033; box-sizing:border-box;}
-  .wall {position:absolute; background:#5c4033; border-radius:10px;}
-  #player {position:absolute; width:50px; height:60px; background-image:url("https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png"); background-size:contain; background-repeat:no-repeat; left:10px; top:10px; transition:left 0.15s linear, top 0.15s linear; z-index:10;}
-  #goal {position:absolute; width:100px; height:35px; background-image:url("https://snickersni.kz/i/packs/dushnila.png"); background-size:contain; background-repeat:no-repeat; bottom:10px; right:10px;}
-  #bubblesCanvas {position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;}
+body {margin:0; font-family: 'Comic Sans MS', Arial, sans-serif; text-align:center; background:#fff8dc;}
+.screen {max-width:500px; margin:20px auto; padding:20px; border-radius:20px; background:rgba(255,255,255,0.9); box-shadow:0 0 15px #ccc;}
+input {font-size:18px; padding:8px; border-radius:10px; border:2px solid #333; width:60%;}
+button {font-size:18px; padding:10px 20px; border:none; border-radius:12px; cursor:pointer; margin-left:10px;}
+iframe {width:100%; height:280px; border:none; border-radius:12px;}
+#mazeContainer {position:relative; width:500px; height:500px; background:#b2d8b2; margin:20px auto; border-radius:20px; border:20px solid #5c4033; box-sizing:border-box;}
+.wall {position:absolute; background:#5c4033; border-radius:10px;}
+#player {position:absolute; width:50px; height:60px; background-image:url("https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png"); background-size:contain; background-repeat:no-repeat; left:10px; top:10px; transition:left 0.15s linear, top 0.15s linear; z-index:10;}
+#goal {position:absolute; width:100px; height:35px; background-image:url("https://snickersni.kz/i/packs/dushnila.png"); background-size:contain; background-repeat:no-repeat; bottom:10px; right:10px;}
+#bubblesCanvas {position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;}
 </style>
 </head>
 <body>
@@ -23,13 +24,8 @@
   <p>Твоя любимка?</p>
   <input id="answerInput" placeholder="Введите ответ" autocomplete="off"/>
   <button onclick="checkAnswer()">Ответить</button>
-</div>
-
-<div id="videoScreen" class="screen" style="display:none;">
-  <h2>Отлично! 🎶</h2>
-  <p>Пока угадываем — слушай музыку!</p>
+  <p>Пока думаешь — слушай музыку!</p>
   <iframe id="musicVideo" src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-  <button onclick="startMaze()">Далее</button>
 </div>
 
 <div id="mazeScreen" class="screen" style="display:none;">
@@ -47,141 +43,133 @@
 <canvas id="bubblesCanvas"></canvas>
 
 <script>
-  const questionScreen = document.getElementById("questionScreen");
-  const answerInput = document.getElementById("answerInput");
-  const videoScreen = document.getElementById("videoScreen");
-  const mazeScreen = document.getElementById("mazeScreen");
-  const mazeContainer = document.getElementById("mazeContainer");
-  const player = document.getElementById("player");
-  const goal = document.getElementById("goal");
-  const messageScreen = document.getElementById("messageScreen");
-  const messageText = document.getElementById("messageText");
-  const bubblesCanvas = document.getElementById("bubblesCanvas");
-  const ctx = bubblesCanvas.getContext("2d");
-  bubblesCanvas.width = window.innerWidth;
-  bubblesCanvas.height = window.innerHeight;
+const questionScreen = document.getElementById("questionScreen");
+const answerInput = document.getElementById("answerInput");
+const mazeScreen = document.getElementById("mazeScreen");
+const mazeContainer = document.getElementById("mazeContainer");
+const player = document.getElementById("player");
+const goal = document.getElementById("goal");
+const messageScreen = document.getElementById("messageScreen");
+const messageText = document.getElementById("messageText");
+const bubblesCanvas = document.getElementById("bubblesCanvas");
+const ctx = bubblesCanvas.getContext("2d");
+bubblesCanvas.width = window.innerWidth;
+bubblesCanvas.height = window.innerHeight;
 
-  let playerPos = {left:10, top:10};
-  const playerSize = 50;
-  const walls = [];
+let playerPos = {left:10, top:10};
+const playerSize = 50;
+const walls = [];
 
-  // Проходимый лабиринт
-  const wallData = [
-    {left:0, top:0, width:500, height:20},    // Верх
-    {left:0, top:0, width:20, height:500},    // Лево
-    {left:0, top:480, width:500, height:20},  // Низ
-    {left:480, top:0, width:20, height:500},  // Право
-    {left:150, top:0, width:20, height:350},
-    {left:300, top:150, width:20, height:350},
-    {left:20, top:200, width:130, height:20},
-    {left:170, top:300, width:130, height:20}
-  ];
+// Проходимый лабиринт
+const wallData = [
+  {left:0, top:0, width:500, height:20},    
+  {left:0, top:0, width:20, height:500},    
+  {left:0, top:480, width:500, height:20},  
+  {left:480, top:0, width:20, height:500},  
+  {left:100, top:0, width:20, height:300},
+  {left:250, top:200, width:20, height:300},
+  {left:20, top:200, width:80, height:20},
+  {left:120, top:250, width:130, height:20}
+];
 
-  function createWalls() {
-    walls.forEach(w=> mazeContainer.removeChild(w.el));
-    walls.length=0;
-    wallData.forEach(w=>{
-      const wall = document.createElement("div");
-      wall.className="wall";
-      wall.style.left=w.left+"px";
-      wall.style.top=w.top+"px";
-      wall.style.width=w.width+"px";
-      wall.style.height=w.height+"px";
-      mazeContainer.appendChild(wall);
-      walls.push({...w, el:wall});
+function createWalls() {
+  walls.forEach(w=> mazeContainer.removeChild(w.el));
+  walls.length=0;
+  wallData.forEach(w=>{
+    const wall = document.createElement("div");
+    wall.className="wall";
+    wall.style.left=w.left+"px";
+    wall.style.top=w.top+"px";
+    wall.style.width=w.width+"px";
+    wall.style.height=w.height+"px";
+    mazeContainer.appendChild(wall);
+    walls.push({...w, el:wall});
+  });
+}
+
+function checkCollision(nx, ny) {
+  const playerRect = {left:nx, top:ny, right:nx+playerSize, bottom:ny+player.offsetHeight};
+  for(let w of walls){
+    const wallRect={left:w.left, top:w.top, right:w.left+w.width, bottom:w.top+w.height};
+    if(!(playerRect.right<=wallRect.left || playerRect.left>=wallRect.right || playerRect.bottom<=wallRect.top || playerRect.top>=wallRect.bottom)){
+      return true;
+    }
+  }
+  return false;
+}
+
+function checkWin(nx, ny) {
+  const goalRect={left:goal.offsetLeft, top:goal.offsetTop, right:goal.offsetLeft+goal.offsetWidth, bottom:goal.offsetTop+goal.offsetHeight};
+  const playerRect={left:nx, top:ny, right:nx+playerSize, bottom:ny+player.offsetHeight};
+  return !(playerRect.right<goalRect.left || playerRect.left>goalRect.right || playerRect.bottom<goalRect.top || playerRect.top>goalRect.bottom);
+}
+
+function showMessage(text) {
+  mazeScreen.style.display="none";
+  messageScreen.style.display="block";
+  messageText.innerText=text;
+  createBubbles(150);
+}
+
+function createBubbles(count){
+  let bubbles=[];
+  for(let i=0;i<count;i++){
+    bubbles.push({x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight, radius:Math.random()*10+5, speed:Math.random()*2+1, opacity:Math.random()*0.5+0.5});
+  }
+  function draw(){
+    ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
+    bubbles.forEach(b=>{
+      ctx.beginPath();
+      ctx.arc(b.x,b.y,b.radius,0,Math.PI*2);
+      ctx.fillStyle=`rgba(173,216,230,${b.opacity})`;
+      ctx.fill();
+      b.y -= b.speed;
+      if(b.y+b.radius<0) b.y=window.innerHeight+b.radius;
     });
+    requestAnimationFrame(draw);
   }
+  draw();
+}
 
-  function checkCollision(nx, ny) {
-    const playerRect = {left:nx, top:ny, right:nx+playerSize, bottom:ny+player.offsetHeight};
-    for(let w of walls){
-      const wallRect={left:w.left, top:w.top, right:w.left+w.width, bottom:w.top+w.height};
-      if(!(playerRect.right<=wallRect.left || playerRect.left>=wallRect.right || playerRect.bottom<=wallRect.top || playerRect.top>=wallRect.bottom)){
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function checkWin(nx, ny) {
-    const goalRect={left:goal.offsetLeft, top:goal.offsetTop, right:goal.offsetLeft+goal.offsetWidth, bottom:goal.offsetTop+goal.offsetHeight};
-    const playerRect={left:nx, top:ny, right:nx+playerSize, bottom:ny+player.offsetHeight};
-    return !(playerRect.right<goalRect.left || playerRect.left>goalRect.right || playerRect.bottom<goalRect.top || playerRect.top>goalRect.bottom);
-  }
-
-  function showMessage(text) {
-    mazeScreen.style.display="none";
-    messageScreen.style.display="block";
-    messageText.innerText=text;
-    createBubbles(150);
-  }
-
-  function createBubbles(count){
-    let bubbles=[];
-    for(let i=0;i<count;i++){
-      bubbles.push({x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight, radius:Math.random()*10+5, speed:Math.random()*2+1, opacity:Math.random()*0.5+0.5});
-    }
-    function draw(){
-      ctx.clearRect(0,0,window.innerWidth, window.innerHeight);
-      bubbles.forEach(b=>{
-        ctx.beginPath();
-        ctx.arc(b.x,b.y,b.radius,0,Math.PI*2);
-        ctx.fillStyle=`rgba(173,216,230,${b.opacity})`;
-        ctx.fill();
-        b.y -= b.speed;
-        if(b.y+b.radius<0) b.y=window.innerHeight+b.radius;
-      });
-      requestAnimationFrame(draw);
-    }
-    draw();
-  }
-
-  function checkAnswer(){
-    const ans = answerInput.value.trim().toLowerCase();
-    if(ans==="лиса"){
-      questionScreen.style.display="none";
-      videoScreen.style.display="block";
-      answerInput.value="";
-      alert("Chill");
-    } else {
-      alert("Думаю, твоя любимка тебя не простит 😆");
-      answerInput.value="";
-    }
-  }
-
-  function startMaze(){
-    videoScreen.style.display="none";
+function checkAnswer(){
+  const ans = answerInput.value.trim().toLowerCase();
+  if(ans==="лиса"){
+    alert("Chill");
+    questionScreen.style.display="none";
     mazeScreen.style.display="block";
     createWalls();
+  } else {
+    alert("Думаю, твоя любимка тебя не простит 😆");
+    answerInput.value="";
   }
+}
 
-  document.addEventListener("keydown", e=>{
-    if(mazeScreen.style.display==="none") return;
-    const step=10;
-    let nx=playerPos.left;
-    let ny=playerPos.top;
-    if(e.key==="ArrowUp") ny-=step;
-    else if(e.key==="ArrowDown") ny+=step;
-    else if(e.key==="ArrowLeft") nx-=step;
-    else if(e.key==="ArrowRight") nx+=step;
+document.addEventListener("keydown", e=>{
+  if(mazeScreen.style.display==="none") return;
+  const step=10;
+  let nx=playerPos.left;
+  let ny=playerPos.top;
+  if(e.key==="ArrowUp") ny-=step;
+  else if(e.key==="ArrowDown") ny+=step;
+  else if(e.key==="ArrowLeft") nx-=step;
+  else if(e.key==="ArrowRight") nx+=step;
 
-    if(nx<0) nx=0;
-    if(ny<0) ny=0;
-    if(nx>500-playerSize) nx=500-playerSize;
-    if(ny>500-player.offsetHeight) ny=500-player.offsetHeight;
+  if(nx<0) nx=0;
+  if(ny<0) ny=0;
+  if(nx>500-playerSize) nx=500-playerSize;
+  if(ny>500-player.offsetHeight) ny=500-player.offsetHeight;
 
-    if(!checkCollision(nx,ny)){
-      playerPos.left=nx;
-      playerPos.top=ny;
-      player.style.left=nx+"px";
-      player.style.top=ny+"px";
+  if(!checkCollision(nx,ny)){
+    playerPos.left=nx;
+    playerPos.top=ny;
+    player.style.left=nx+"px";
+    player.style.top=ny+"px";
 
-      if(checkWin(nx,ny)){
-        showMessage("Поздравляю, ты прошёл! С меня 3 желания, йееееееей!");
-      }
+    if(checkWin(nx,ny)){
+      showMessage("Поздравляю, ты прошёл! С меня 3 желания, йееееееей!");
     }
-  });
+  }
+});
 </script>
-
 </body>
 </html>
