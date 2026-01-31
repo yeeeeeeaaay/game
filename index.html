@@ -1,205 +1,179 @@
-
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Капибара и шашки</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Капибара в шашках</title>
 <style>
-body {margin:0; font-family:'Comic Sans MS', Arial; background: linear-gradient(135deg, #fff7e6 0%, #ffd966 100%); text-align:center;}
-.container {width:520px; margin:20px auto; background: rgba(255 255 255 / 0.95); border-radius:20px; padding:20px; box-shadow:0 0 15px #b8860baa; position:relative; z-index:10;}
-button {font-size:18px; padding:12px 30px; margin-top:15px; border:none; border-radius:12px; cursor:pointer; background:#6b4f4f; color:white; transition:0.3s;}
-button:hover {background:#a47171;}
-input {font-size:18px; padding:10px; border-radius:12px; border:2px solid #6b4f4f; width:60%;}
-.hidden {display:none;}
-#capy {width:120px; margin:10px;}
-#board {display:grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); margin:20px auto; border:4px solid #6b4f4f;}
-.cell {width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer; user-select:none;}
-.dark {background:#6b4f4f;}
-.light {background:#fff2e6;}
-#bubblesCanvas {position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;}
+  body {
+    margin: 0;
+    font-family: Comic Sans MS, Arial, sans-serif;
+    background: linear-gradient(135deg,#fff7e6 0%,#ffd966 100%);
+    text-align: center;
+  }
+  h2 {color:#6b4f4f;}
+  #board {
+    display: grid;
+    grid-template-columns: repeat(8, 60px);
+    grid-template-rows: repeat(8, 60px);
+    margin: 20px auto;
+    border:5px solid #6b4f4f;
+  }
+  .cell {
+    width:60px; height:60px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+  }
+  .white { background:#eee; }
+  .black { background:#6b4f4f; cursor:pointer; }
+  .piece {
+    width:50px; height:50px;
+    border-radius:50%;
+  }
+  .player { background:white; }
+  .bot { background:black; }
+  #capybara { width:150px; margin: 20px auto; }
 </style>
 </head>
 <body>
 
-<!-- Вопрос -->
-<div class="container" id="questionScreen">
-  <h2>🦫 Твоя любимка?</h2>
-  <img id="capy" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара">
-  <br>
-  <input type="text" id="answerInput" placeholder="Введите имя">
-  <br>
-  <button onclick="checkAnswer()">Ответить</button>
-
-  <!-- Музыка -->
-  <iframe src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&loop=1&playlist=kbEC-AGr9n0&controls=1&mute=0&modestbranding=1&rel=0" width="320" height="180" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen style="margin-top:10px;"></iframe>
-</div>
-
-<!-- Сообщение -->
-<div class="container hidden" id="messageScreen">
-  <h2 id="messageText"></h2>
-</div>
-
-<!-- Шашки -->
-<div class="container hidden" id="checkersScreen">
-  <h2>Поймай шоколадку! 🍫</h2>
-  <div id="board"></div>
-  <img id="goal" src="https://snickersni.kz/i/packs/dushnila.png" width="80" style="margin-top:10px;">
-  <p style="color:#6b4f4f; font-weight:bold;">Щёлкай по своей шашке и затем по пустой клетке чтобы ходить. После твоего хода ходит бот.</p>
-</div>
-
-<canvas id="bubblesCanvas"></canvas>
+<h2>Игра в шашки с капибарой!</h2>
+<img id="capybara" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара">
+<div id="board"></div>
+<h2 id="message"></h2>
 
 <script>
-const questionScreen = document.getElementById("questionScreen");
-const messageScreen  = document.getElementById("messageScreen");
-const checkersScreen = document.getElementById("checkersScreen");
-const messageText    = document.getElementById("messageText");
-const boardDiv       = document.getElementById("board");
-const goal           = document.getElementById("goal");
-const bubblesCanvas  = document.getElementById("bubblesCanvas");
-const ctx            = bubblesCanvas.getContext("2d");
-bubblesCanvas.width = window.innerWidth;
-bubblesCanvas.height = window.innerHeight;
+const boardEl = document.getElementById('board');
+const messageEl = document.getElementById('message');
 
-function checkAnswer(){
-  const ans = document.getElementById("answerInput").value.trim().toLowerCase();
-  if(ans==="лиса"){
-    messageText.innerText="Chill 😎";
-    questionScreen.classList.add("hidden");
-    messageScreen.classList.remove("hidden");
-    setTimeout(()=>{
-      messageScreen.classList.add("hidden");
-      startCheckers();
-    },1500);
-  } else {
-    messageText.innerText="Думаю, твоя любимка тебя не простит 😆";
-    questionScreen.classList.add("hidden");
-    messageScreen.classList.remove("hidden");
-  }
-}
-
-// ================= Шашки =================
-const boardSize = 8;
-let selectedCell = null;
 let board = [];
+let selectedCell = null;
 
-function startCheckers(){
-  checkersScreen.classList.remove("hidden");
-  boardDiv.innerHTML="";
+// Создаем доску
+function initBoard(){
+  boardEl.innerHTML='';
   board = [];
-  for(let r=0;r<boardSize;r++){
-    board[r]=[];
-    for(let c=0;c<boardSize;c++){
-      const cell = document.createElement("div");
-      cell.className="cell "+((r+c)%2===0?"light":"dark");
-      cell.dataset.row=r;
-      cell.dataset.col=c;
-      cell.addEventListener("click",()=>cellClick(r,c));
-      boardDiv.appendChild(cell);
-      // Расстановка шашек
-      if(r<3 && (r+c)%2===1) {cell.textContent="●"; board[r][c]="player";}
-      else if(r>4 && (r+c)%2===1) {cell.textContent="○"; board[r][c]="bot";}
-      else board[r][c]=null;
+  for(let r=0;r<8;r++){
+    const row=[];
+    for(let c=0;c<8;c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell '+((r+c)%2?"black":"white");
+      cell.dataset.r=r;
+      cell.dataset.c=c;
+      cell.addEventListener('click',()=>cellClick(r,c));
+      boardEl.appendChild(cell);
+
+      // расставляем шашки
+      if((r+c)%2){
+        if(r<3) row.push("bot");
+        else if(r>4) row.push("player");
+        else row.push(null);
+      } else row.push(null);
     }
+    board.push(row);
   }
   updateBoard();
 }
 
-// Клик по клетке
+function updateBoard(){
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      const cell = boardEl.children[r*8+c];
+      cell.innerHTML='';
+      if(board[r][c]){
+        const p = document.createElement('div');
+        p.className='piece '+board[r][c];
+        cell.appendChild(p);
+      }
+    }
+  }
+}
+
 function cellClick(r,c){
   if(selectedCell){
     const [sr,sc]=selectedCell;
-    if(!board[r][c] && (r+c)%2===1){
-      // Проверяем прыжок через противника
+    const piece = board[sr][sc];
+    if(!board[r][c] && (r+c)%2===1 && piece==="player"){
       const dr = r-sr;
       const dc = c-sc;
-      if(Math.abs(dr)==2 && Math.abs(dc)==2){
+
+      // обычный ход
+      if(Math.abs(dr)===1 && Math.abs(dc)===1){
+        board[r][c]=piece;
+        board[sr][sc]=null;
+        selectedCell=null;
+        updateBoard();
+        setTimeout(botMove,500);
+        return;
+      }
+
+      // прыжок через шашку
+      if(Math.abs(dr)===2 && Math.abs(dc)===2){
         const jumpedR = sr + dr/2;
         const jumpedC = sc + dc/2;
         if(board[jumpedR][jumpedC]==="bot"){
-          board[jumpedR][jumpedC]=null;
-        } else {selectedCell=null; return;}
+          board[jumpedR][jumpedC]=null; // съеденная шашка исчезает
+          board[r][c]=piece;
+          board[sr][sc]=null;
+          selectedCell=null;
+          updateBoard();
+          setTimeout(botMove,500);
+          return;
+        }
       }
-      board[r][c]=board[sr][sc];
-      board[sr][sc]=null;
-      selectedCell=null;
-      updateBoard();
-      if(board.flat().filter(x=>x==="bot").length===0){win();}
-      else setTimeout(botMove,500);
-    } else selectedCell=null;
+    }
+    selectedCell=null;
   } else {
     if(board[r][c]==="player") selectedCell=[r,c];
   }
 }
 
-function updateBoard(){
-  for(let r=0;r<boardSize;r++){
-    for(let c=0;c<boardSize;c++){
-      const cell = boardDiv.children[r*boardSize+c];
-      cell.textContent = board[r][c]==="player"?"●":board[r][c]==="bot"?"○":"";
-    }
-  }
-}
-
-// ================= Ход бота =================
+// Ход бота (очень простой)
 function botMove(){
-  const botPieces = [];
-  for(let r=0;r<boardSize;r++){
-    for(let c=0;c<boardSize;c++){
-      if(board[r][c]==="bot") botPieces.push([r,c]);
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(board[r][c]==="bot"){
+        const dirs=[[1,-1],[1,1]]; // вперед
+        for(let [dr,dc] of dirs){
+          let nr=r+dr, nc=c+dc;
+          if(nr>=0 && nr<8 && nc>=0 && nc<8){
+            if(!board[nr][nc]){
+              board[nr][nc]="bot";
+              board[r][c]=null;
+              updateBoard();
+              checkWin();
+              return;
+            } else if(board[nr][nc]==="player"){
+              // прыжок через игрока
+              let jr = nr+dr, jc = nc+dc;
+              if(jr>=0 && jr<8 && jc>=0 && jc<8 && !board[jr][jc]){
+                board[nr][nc]=null; // съедаем
+                board[jr][jc]="bot";
+                board[r][c]=null;
+                updateBoard();
+                checkWin();
+                return;
+              }
+            }
+          }
+        }
+      }
     }
   }
-  while(botPieces.length){
-    const idx=Math.floor(Math.random()*botPieces.length);
-    const [r,c]=botPieces[idx];
-    const moves=[[r-1,c-1],[r-1,c+1],[r-2,c-2],[r-2,c+2]]; // простое движение и прыжки
-    const validMoves = moves.filter(([nr,nc])=>nr>=0 && nc>=0 && nr<boardSize && nc<boardSize && !board[nr][nc]);
-    if(validMoves.length){
-      const [nr,nc]=validMoves[Math.floor(Math.random()*validMoves.length)];
-      // Проверка прыжка через игрока
-      if(Math.abs(nr-r)==2){
-        const jumpedR = r + (nr-r)/2;
-        const jumpedC = c + (nc-c)/2;
-        if(board[jumpedR][jumpedC]==="player") board[jumpedR][jumpedC]=null;
-      }
-      board[nr][nc]="bot";
-      board[r][c]=null;
-      updateBoard();
-      if(board.flat().filter(x=>x==="player").length===0){lose();}
-      break;
-    } else botPieces.splice(idx,1);
+}
+
+function checkWin(){
+  const playerLeft = board.flat().filter(x=>"player"===x).length;
+  const botLeft = board.flat().filter(x=>"bot"===x).length;
+  if(playerLeft===0){
+    messageEl.innerText="Бот победил! 😢";
+  } else if(botLeft===0){
+    messageEl.innerText="Поздравляю! Ты победил! 🎉";
   }
 }
 
-// ================= Победа =================
-function win(){
-  checkersScreen.classList.add("hidden");
-  messageText.innerText="Поздравляю! Ты выиграл и с меня 3 желания! 🎉";
-  messageScreen.classList.remove("hidden");
-  createBubbles(100);
-}
-function lose(){
-  checkersScreen.classList.add("hidden");
-  messageText.innerText="Ой! Бот победил 😢 Попробуй ещё!";
-  messageScreen.classList.remove("hidden");
-  createBubbles(50);
-}
-
-// ================= Пузырьки =================
-function createBubbles(count){
-  for(let i=0;i<count;i++){
-    const b=document.createElement("div");
-    b.className="bubble";
-    const size=10+Math.random()*20;
-    b.style.width=b.style.height=size+"px";
-    b.style.left=Math.random()*window.innerWidth+"px";
-    b.style.top=window.innerHeight+"px";
-    b.style.animationDuration=(3+Math.random()*4)+"s";
-    b.style.animationDelay=(Math.random()*5)+"s";
-    document.body.appendChild(b);
-  }
-}
+initBoard();
 </script>
 </body>
 </html>
