@@ -3,162 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Капибара Шашки</title>
+<title>Шашки с капибарой</title>
 <style>
-  body {
-    margin:0;
-    font-family: Comic Sans MS, Arial, sans-serif;
-    background: linear-gradient(135deg,#fff7e6 0%,#ffd966 100%);
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    justify-content:center;
-    height:100vh;
-  }
-  h2 {color:#6b4f4f;}
-  #board {
-    display:grid;
-    grid-template-columns: repeat(8, 60px);
-    grid-template-rows: repeat(8, 60px);
-    border:5px solid #6b4f4f;
-    border-radius:12px;
-  }
-  .cell {
-    width:60px; height:60px;
-    display:flex; align-items:center; justify-content:center;
-  }
-  .black {background:#6b4f4f;}
-  .white {background:#ffd966;}
-  .piece {width:40px; height:40px; border-radius:50%; cursor:pointer;}
-  .player {background:#fff;}
-  .bot {background:#000;}
-  #capy {
-    width:120px;
-    margin-bottom:20px;
-  }
+body {
+  margin: 0;
+  font-family: Comic Sans MS, Arial, sans-serif;
+  background: linear-gradient(135deg, #fff7e6 0%, #ffd966 100%);
+  text-align: center;
+  overflow-x: hidden;
+}
+h1 { color:#6b4f4f; }
+#capybara {
+  width: 150px;
+  margin: 10px auto;
+}
+#board {
+  display: grid;
+  grid-template-columns: repeat(8, 60px);
+  grid-template-rows: repeat(8, 60px);
+  margin: 20px auto;
+  border: 4px solid #6b4f4f;
+  box-shadow: 0 0 10px #555;
+}
+.cell {
+  width: 60px;
+  height: 60px;
+}
+.cell.black { background: #6b4f4f; }
+.cell.white { background: #f0e4d7; }
+.piece {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  margin: auto;
+  cursor: pointer;
+  position: relative;
+  top:5px;
+}
+.white { background: #ffffff; }
+.black { background: #000000; }
+.selected { outline: 3px solid yellow; }
 </style>
 </head>
 <body>
 
-<h2>🦫 Капибара Шашки</h2>
-<img id="capy" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара">
+<h1>Шашки с капибарой 🦫</h1>
+<img id="capybara" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" alt="Капибара">
 
 <div id="board"></div>
 
 <script>
-const boardEl = document.getElementById("board");
-let board = [];
+const board = document.getElementById('board');
+let cells = [];
+let selectedPiece = null;
+let playerTurn = true; // true = игрок, false = бот
 
-// Создаем доску и шашки
-function initBoard() {
-  board = Array(8).fill(null).map(()=>Array(8).fill(null));
-  for(let r=0;r<3;r++){
-    for(let c=0;c<8;c++){
-      if((r+c)%2) board[r][c]="bot";
-    }
-  }
-  for(let r=5;r<8;r++){
-    for(let c=0;c<8;c++){
-      if((r+c)%2) board[r][c]="player";
-    }
-  }
-  renderBoard();
-}
-
-function renderBoard(){
-  boardEl.innerHTML="";
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      const cell = document.createElement("div");
-      cell.className="cell "+((r+c)%2?"black":"white");
-      if(board[r][c]){
-        const piece = document.createElement("div");
-        piece.className="piece "+board[r][c];
-        cell.appendChild(piece);
+// Создание доски и шашек
+function createBoard() {
+  board.innerHTML = '';
+  cells = [];
+  for(let r=0; r<8; r++){
+    cells[r] = [];
+    for(let c=0; c<8; c++){
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + ((r+c)%2==0?'white':'black');
+      cell.dataset.row = r;
+      cell.dataset.col = c;
+      board.appendChild(cell);
+      cells[r][c] = {el: cell, piece: null};
+      
+      // Расставляем шашки
+      if((r+c)%2==1 && r<3){
+        addPiece(r,c,'black');
+      } else if((r+c)%2==1 && r>4){
+        addPiece(r,c,'white');
       }
-      boardEl.appendChild(cell);
     }
   }
 }
 
-// Проверка на съедение и обычный ход
-function botMove() {
-  const botPieces=[];
-  for(let r=0;r<8;r++){
-    for(let c=0;c<8;c++){
-      if(board[r][c]==="bot") botPieces.push([r,c]);
+// Добавить шашку
+function addPiece(r,c,color){
+  const piece = document.createElement('div');
+  piece.className = 'piece '+color;
+  piece.dataset.color=color;
+  cells[r][c].piece=piece;
+  cells[r][c].el.appendChild(piece);
+  if(color=='white'){
+    piece.addEventListener('click',()=> selectPiece(r,c));
+  }
+}
+
+// Выбор шашки игроком
+function selectPiece(r,c){
+  if(!playerTurn) return;
+  if(selectedPiece) selectedPiece.classList.remove('selected');
+  selectedPiece = cells[r][c].piece;
+  selectedPiece.classList.add('selected');
+}
+
+// Проверка хода
+function validMove(sr,sc,tr,tc){
+  if(tr<0||tr>7||tc<0||tc>7) return false;
+  if(cells[tr][tc].piece) return false;
+  let pieceColor = cells[sr][sc].piece.dataset.color;
+  let dir = (pieceColor=='white')?-1:1;
+  // Обычный ход
+  if(tr==sr+dir && Math.abs(tc-sc)==1) return true;
+  // Съедение
+  if(tr==sr+2*dir && Math.abs(tc-sc)==2){
+    let mr = sr+dir, mc = sc+(tc-sc)/2;
+    if(cells[mr][mc].piece && cells[mr][mc].piece.dataset.color != pieceColor) return true;
+  }
+  return false;
+}
+
+// Сделать ход
+function movePiece(sr,sc,tr,tc){
+  const piece = cells[sr][sc].piece;
+  cells[sr][sc].piece=null;
+  cells[tr][tc].piece=piece;
+  cells[sr][sc].el.innerHTML='';
+  cells[tr][tc].el.appendChild(piece);
+  piece.classList.remove('selected');
+  
+  // Проверка съедения
+  if(Math.abs(tr-sr)==2){
+    let mr = sr + (tr-sr)/2;
+    let mc = sc + (tc-sc)/2;
+    let removed = cells[mr][mc].piece;
+    if(removed){
+      removed.remove();
+      cells[mr][mc].piece=null;
     }
   }
+}
 
-  // 1. Ищем атаки
-  for(let [r,c] of botPieces){
-    const dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
-    for(let [dr,dc] of dirs){
-      const nr=r+dr, nc=c+dc;
-      const jr=r+2*dr, jc=c+2*dc;
-      if(nr>=0 && nr<8 && nc>=0 && nc<8 && jr>=0 && jr<8 && jc>=0 && jc<8){
-        if(board[nr][nc]==="player" && !board[jr][jc]){
-          board[jr][jc]="bot";
-          board[r][c]=null;
-          board[nr][nc]=null;
-          renderBoard();
-          return;
+// Ход игрока
+board.addEventListener('click',e=>{
+  if(!playerTurn) return;
+  const target = e.target.closest('.cell');
+  if(!target) return;
+  let tr = parseInt(target.dataset.row);
+  let tc = parseInt(target.dataset.col);
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      if(cells[r][c].piece==selectedPiece){
+        if(validMove(r,c,tr,tc)){
+          movePiece(r,c,tr,tc);
+          selectedPiece=null;
+          playerTurn=false;
+          setTimeout(botMove,500);
         }
-      }
-    }
-  }
-
-  // 2. Обычный ход
-  for(let [r,c] of botPieces){
-    const dirs=[[-1,-1],[-1,1],[1,-1],[1,1]];
-    for(let [dr,dc] of dirs){
-      const nr=r+dr, nc=c+dc;
-      if(nr>=0 && nr<8 && nc>=0 && nc<8 && !board[nr][nc]){
-        board[nr][nc]="bot";
-        board[r][c]=null;
-        renderBoard();
         return;
       }
     }
   }
-}
-
-// Игрок ходит стрелками
-let selected=null;
-document.addEventListener("keydown",e=>{
-  if(!selected){
-    // Выбираем первую белую шашку
-    outer: for(let r=0;r<8;r++){
-      for(let c=0;c<8;c++){
-        if(board[r][c]==="player"){selected=[r,c]; break outer;}
-      }
-    }
-  } else {
-    let [r,c]=selected;
-    let nr=r, nc=c;
-    if(e.key==="ArrowUp") nr--; else if(e.key==="ArrowDown") nr++; 
-    else if(e.key==="ArrowLeft") nc--; else if(e.key==="ArrowRight") nc++;
-    if(nr>=0 && nr<8 && nc>=0 && nc<8){
-      // Съедение
-      const dr=nr-r, dc=nc-c;
-      const jr=nr+dr, jc=nc+dc;
-      if(board[nr][nc]==="bot" && jr>=0 && jr<8 && jc>=0 && jc<8 && !board[jr][jc]){
-        board[jr][jc]="player";
-        board[r][c]=null;
-        board[nr][nc]=null;
-      } else if(!board[nr][nc]){
-        board[nr][nc]="player";
-        board[r][c]=null;
-      }
-      selected=[nr,nc];
-      renderBoard();
-      setTimeout(botMove,300);
-    }
-  }
 });
 
-initBoard();
-</script>
+// Бот ходит случайно простым алгоритмом
+function botMove(){
+  let moves=[];
+  for(let r=0;r<8;r++){
+    for(let c=0;c<8;c++){
+      let p = cells[r][c].piece;
+      if(p && p.dataset.color=='black'){
+        for(let dr=[1,2], dc=[-1,1,-2,2], i=0;i<dr.length;i++){
+          let tr=r+dr[i];
+          let tc=c+dc[i];
+          if(validMove(r,c,tr,tc)) moves.push({sr:r,sc:c,tr,tc});
+        }
+      }
+    }
+  }
+  if(moves.length>0){
+    const m = moves[Math.floor(Math.random()*moves.length)];
+    movePiece(m.sr,m.sc,m.tr,m.tc);
+  }
+  playerTurn=true;
+}
 
+// Запускаем игру
+createBoard();
+</script>
 </body>
 </html>
