@@ -44,7 +44,7 @@ input {font-size:18px; padding:10px; border-radius:12px; border:2px solid #6b4f4
   <h2>Поймай шоколадку! 🍫</h2>
   <div id="board"></div>
   <img id="goal" src="https://snickersni.kz/i/packs/dushnila.png" width="80" style="margin-top:10px;">
-  <p style="color:#6b4f4f; font-weight:bold;">Щёлкай по шашке и затем по пустой клетке чтобы ходить.</p>
+  <p style="color:#6b4f4f; font-weight:bold;">Щёлкай по своей шашке и затем по пустой клетке чтобы ходить. После твоего хода ходит бот.</p>
 </div>
 
 <canvas id="bubblesCanvas"></canvas>
@@ -97,24 +97,24 @@ function startCheckers(){
       cell.addEventListener("click",()=>cellClick(r,c));
       boardDiv.appendChild(cell);
       if(r<3 && (r+c)%2===1) {cell.textContent="●"; board[r][c]="player";}
-      else if(r>4 && (r+c)%2===1) {cell.textContent="○"; board[r][c]="opponent";}
+      else if(r>4 && (r+c)%2===1) {cell.textContent="○"; board[r][c]="bot";}
       else board[r][c]=null;
     }
   }
 }
 
+// Клик по клетке
 function cellClick(r,c){
   if(selectedCell){
     const [sr,sc]=selectedCell;
     if(!board[r][c] && (r+c)%2===1){
       board[r][c]=board[sr][sc];
       board[sr][sc]=null;
-      updateBoard();
       selectedCell=null;
-      // Проверка победы — если все оппоненты убраны
-      if(board.flat().filter(x=>x==="opponent").length===0){
-        win();
-      }
+      updateBoard();
+      // Проверка победы игрока
+      if(board.flat().filter(x=>x==="bot").length===0){win();}
+      else setTimeout(botMove,500);
     } else selectedCell=null;
   } else {
     if(board[r][c]==="player") selectedCell=[r,c];
@@ -125,16 +125,48 @@ function updateBoard(){
   for(let r=0;r<boardSize;r++){
     for(let c=0;c<boardSize;c++){
       const cell = boardDiv.children[r*boardSize+c];
-      cell.textContent = board[r][c]==="player"?"●":board[r][c]==="opponent"?"○":"";
+      cell.textContent = board[r][c]==="player"?"●":board[r][c]==="bot"?"○":"";
     }
   }
 }
 
+// ================= Ход бота =================
+function botMove(){
+  const botPieces = [];
+  for(let r=0;r<boardSize;r++){
+    for(let c=0;c<boardSize;c++){
+      if(board[r][c]==="bot") botPieces.push([r,c]);
+    }
+  }
+  while(botPieces.length){
+    const idx=Math.floor(Math.random()*botPieces.length);
+    const [r,c]=botPieces[idx];
+    const moves=[[r-1,c-1],[r-1,c+1]]; // простое движение вверх
+    const validMoves = moves.filter(([nr,nc])=>nr>=0 && nc>=0 && nr<boardSize && nc<boardSize && !board[nr][nc]);
+    if(validMoves.length){
+      const [nr,nc]=validMoves[Math.floor(Math.random()*validMoves.length)];
+      board[nr][nc]="bot";
+      board[r][c]=null;
+      updateBoard();
+      // Проверка победы бота
+      if(board.flat().filter(x=>x==="player").length===0){lose();}
+      break;
+    } else botPieces.splice(idx,1); // если нет ходов, удаляем шашку из выбора
+  }
+}
+
+// ================= Победа =================
 function win(){
   checkersScreen.classList.add("hidden");
   messageText.innerText="Поздравляю! Ты выиграл и с меня 3 желания! 🎉";
   messageScreen.classList.remove("hidden");
   createBubbles(100);
+}
+function lose(){
+  checkersScreen.classList.add("hidden");
+  messageText.innerText="Ой! Бот победил 😢 Попробуй ещё!";
+  messageScreen.classList.remove("hidden");
+  createBubbles(50);
 }
 
 // ================= Пузырьки =================
@@ -154,3 +186,4 @@ function createBubbles(count){
 </script>
 </body>
 </html>
+
