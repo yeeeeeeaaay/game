@@ -3,242 +3,233 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Шашки с капибарой 🦫</title>
+<title>Капибара: Морской бой 🦫⚓</title>
 
 <style>
 body{
   margin:0;
-  font-family: Comic Sans MS, Arial, sans-serif;
-  background: linear-gradient(135deg,#fff7e6,#ffd966);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:flex-start;
-  min-height:100vh;
+  font-family:Comic Sans MS, Arial;
+  background:linear-gradient(135deg,#fff7e6,#ffd966);
+  text-align:center;
 }
 
-h2{color:#6b4f4f;margin:10px;}
-
-#capy{
-  width:140px;
+.container{
+  width:520px;
+  margin:20px auto;
+  background:rgba(255,255,255,.9);
+  border-radius:20px;
+  padding:20px;
+  box-shadow:0 0 15px #b8860baa;
 }
 
-#board{
+.hidden{display:none;}
+
+button{
+  font-size:18px;
+  padding:10px 25px;
+  border:none;
+  border-radius:12px;
+  cursor:pointer;
+  background:#6b4f4f;
+  color:white;
+}
+
+input{
+  font-size:18px;
+  padding:10px;
+  border-radius:12px;
+  border:2px solid #6b4f4f;
+  width:60%;
+}
+
+.board{
   display:grid;
-  grid-template-columns:repeat(8,60px);
-  grid-template-rows:repeat(8,60px);
-  border:5px solid #6b4f4f;
-  margin-top:15px;
+  grid-template-columns:repeat(6,50px);
+  grid-template-rows:repeat(6,50px);
+  gap:4px;
+  justify-content:center;
+  margin:10px auto;
 }
 
 .cell{
-  width:60px;
-  height:60px;
+  width:50px;
+  height:50px;
+  background:#a3d9ff;
+  border-radius:6px;
+  cursor:pointer;
   display:flex;
   align-items:center;
   justify-content:center;
+  font-size:22px;
 }
 
-.cell.dark{background:#6b4f4f;}
-.cell.light{background:#f6e8d5;}
+.ship{background:#6b4f4f;}
+.hit{background:red;color:white;}
+.miss{background:#ddd;}
 
-.piece{
-  width:46px;
-  height:46px;
-  border-radius:50%;
-  cursor:pointer;
-}
-
-.player{background:white;}
-.bot{background:black;}
-
-.selected{
-  outline:4px solid yellow;
-}
-
-/* экран конца */
-#endScreen{
-  display:none;
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.75);
-  color:white;
-  font-size:30px;
-  align-items:center;
-  justify-content:center;
-  flex-direction:column;
-  z-index:9999;
-}
+h3{margin:10px 0;color:#6b4f4f;}
 </style>
 </head>
 
 <body>
 
-<h2>Шашки с капибарой</h2>
-<img id="capy" src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png">
-
-<div id="board"></div>
-
-<div id="endScreen">
-  <div id="endText"></div>
+<!-- ВОПРОС -->
+<div class="container" id="questionScreen">
+  <h2>🦫 Твоя любимка?</h2>
   <img src="https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png" width="180">
+  <br><br>
+  <input id="answerInput" placeholder="Введите имя">
+  <br><br>
+  <button onclick="checkAnswer()">Ответить</button>
+
+  <iframe width="100%" height="250"
+    src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&loop=1&playlist=kbEC-AGr9n0&controls=1"
+    allow="autoplay">
+  </iframe>
 </div>
 
-<audio id="eatSound" src="https://cdn.pixabay.com/audio/2022/03/15/audio_3c3a4d8d6e.mp3"></audio>
+<!-- СООБЩЕНИЕ -->
+<div class="container hidden" id="messageScreen">
+  <h2 id="messageText"></h2>
+</div>
+
+<!-- ИГРА -->
+<div class="container hidden" id="gameScreen">
+  <h2>⚓ Морской бой</h2>
+
+  <h3>Твои корабли</h3>
+  <div class="board" id="playerBoard"></div>
+
+  <h3>Поле противника</h3>
+  <div class="board" id="botBoard"></div>
+</div>
 
 <script>
-const SIZE=8;
-const board=document.getElementById("board");
-let cells=[];
-let pieces=[];
-let selected=null;
-let playerTurn=true;
+const qScreen=document.getElementById("questionScreen");
+const mScreen=document.getElementById("messageScreen");
+const gScreen=document.getElementById("gameScreen");
+const mText=document.getElementById("messageText");
 
-// ---------- СОЗДАНИЕ ДОСКИ ----------
-for(let r=0;r<SIZE;r++){
-  cells[r]=[];
-  pieces[r]=[];
-  for(let c=0;c<SIZE;c++){
-    const cell=document.createElement("div");
-    cell.className="cell "+((r+c)%2?"dark":"light");
-    board.appendChild(cell);
-    cells[r][c]=cell;
-    pieces[r][c]=null;
+const SIZE=6;
+let player=[], bot=[];
+let playerShips=3, botShips=3;
+let turn=true;
 
-    if((r+c)%2 && r<3){
-      addPiece(r,c,"bot");
-    }
-    if((r+c)%2 && r>4){
-      addPiece(r,c,"player");
-    }
+// ---------- ВОПРОС ----------
+function checkAnswer(){
+  const ans=document.getElementById("answerInput").value.toLowerCase().trim();
+  if(ans==="лиса"){
+    mText.innerText="Chill 😎";
+    qScreen.classList.add("hidden");
+    mScreen.classList.remove("hidden");
+    setTimeout(()=>{
+      mScreen.classList.add("hidden");
+      startGame();
+    },1500);
+  }else{
+    mText.innerText="Думаю, твоя любимка тебя не простит 😂";
+    qScreen.classList.add("hidden");
+    mScreen.classList.remove("hidden");
   }
 }
 
-// ---------- ФУНКЦИИ ----------
-function addPiece(r,c,type){
-  const p=document.createElement("div");
-  p.className="piece "+type;
-  p.dataset.type=type;
-  cells[r][c].appendChild(p);
-  pieces[r][c]=p;
-
-  if(type==="player"){
-    p.onclick=()=>selectPiece(p);
-  }
+// ---------- ИГРА ----------
+function startGame(){
+  gScreen.classList.remove("hidden");
+  initBoards();
 }
 
-function selectPiece(p){
-  if(!playerTurn) return;
-  if(selected) selected.classList.remove("selected");
-  selected=p;
-  selected.classList.add("selected");
-}
+function initBoards(){
+  const pB=document.getElementById("playerBoard");
+  const bB=document.getElementById("botBoard");
+  pB.innerHTML=""; bB.innerHTML="";
+  player=[]; bot=[];
+  playerShips=3; botShips=3;
 
-function findPiece(p){
-  for(let r=0;r<SIZE;r++)
-    for(let c=0;c<SIZE;c++)
-      if(pieces[r][c]===p) return {r,c};
-}
+  for(let i=0;i<SIZE*SIZE;i++){
+    player[i]=false;
+    bot[i]=false;
 
-board.onclick=e=>{
-  if(!selected || !playerTurn) return;
-  const cell=e.target.closest(".cell");
-  if(!cell) return;
+    const pc=document.createElement("div");
+    pc.className="cell";
+    pB.appendChild(pc);
 
-  const tr=[...board.children].indexOf(cell);
-  const r=Math.floor(tr/8);
-  const c=tr%8;
-
-  const {r:sr,c:sc}=findPiece(selected);
-  const dr=r-sr, dc=c-sc;
-
-  // обычный ход
-  if(dr===-1 && Math.abs(dc)===1 && !pieces[r][c]){
-    move(sr,sc,r,c);
-    return;
+    const bc=document.createElement("div");
+    bc.className="cell";
+    bc.onclick=()=>playerShot(i,bc);
+    bB.appendChild(bc);
   }
 
-  // съедение
-  if(dr===-2 && Math.abs(dc)===2){
-    const mr=sr-1, mc=sc+dc/2;
-    if(pieces[mr][mc]?.dataset.type==="bot" && !pieces[r][c]){
-      eat(sr,sc,r,c,mr,mc);
+  placeShips(player,document.getElementById("playerBoard"),true);
+  placeShips(bot,document.getElementById("botBoard"),false);
+}
+
+function placeShips(arr,board,show){
+  let placed=0;
+  while(placed<3){
+    let i=Math.floor(Math.random()*36);
+    if(!arr[i]){
+      arr[i]=true;
+      if(show) board.children[i].classList.add("ship");
+      placed++;
     }
   }
-};
-
-function move(sr,sc,tr,tc){
-  cells[sr][sc].removeChild(pieces[sr][sc]);
-  cells[tr][tc].appendChild(pieces[sr][sc]);
-  pieces[tr][tc]=pieces[sr][sc];
-  pieces[sr][sc]=null;
-  selected.classList.remove("selected");
-  selected=null;
-  playerTurn=false;
-  setTimeout(botMove,400);
 }
 
-function eat(sr,sc,tr,tc,er,ec){
-  pieces[er][ec].remove();
-  pieces[er][ec]=null;
-  document.getElementById("eatSound").play();
-  move(sr,sc,tr,tc);
-  checkEnd();
-}
+function playerShot(i,cell){
+  if(!turn || cell.classList.contains("hit") || cell.classList.contains("miss")) return;
 
-// ---------- БОТ ----------
-function botMove(){
-  let moves=[];
-  for(let r=0;r<SIZE;r++){
-    for(let c=0;c<SIZE;c++){
-      if(pieces[r][c]?.dataset.type==="bot"){
-        for(let dc of [-1,1]){
-          // атака
-          if(
-            pieces[r+1]?.[c+dc]?.dataset.type==="player" &&
-            !pieces[r+2]?.[c+2*dc]
-          ){
-            return botEat(r,c,r+2,c+2*dc,r+1,c+dc);
-          }
-          // обычный
-          if(!pieces[r+1]?.[c+dc]){
-            moves.push([r,c,r+1,c+dc]);
-          }
-        }
-      }
-    }
+  if(bot[i]){
+    cell.classList.add("hit");
+    cell.innerText="🔥";
+    bot[i]=false;
+    botShips--;
+    checkEnd();
+  }else{
+    cell.classList.add("miss");
+    cell.innerText="•";
+    turn=false;
+    setTimeout(botShot,700);
   }
-  if(moves.length){
-    const m=moves[Math.floor(Math.random()*moves.length)];
-    move(m[0],m[1],m[2],m[3]);
+}
+
+function botShot(){
+  let i;
+  do{
+    i=Math.floor(Math.random()*36);
+  }while(
+    document.getElementById("playerBoard").children[i].classList.contains("hit") ||
+    document.getElementById("playerBoard").children[i].classList.contains("miss")
+  );
+
+  const cell=document.getElementById("playerBoard").children[i];
+
+  if(player[i]){
+    cell.classList.add("hit");
+    cell.innerText="🔥";
+    player[i]=false;
+    playerShips--;
+    checkEnd();
+  }else{
+    cell.classList.add("miss");
+    cell.innerText="•";
   }
-  playerTurn=true;
+  turn=true;
 }
 
-function botEat(sr,sc,tr,tc,er,ec){
-  pieces[er][ec].remove();
-  pieces[er][ec]=null;
-  document.getElementById("eatSound").play();
-  move(sr,sc,tr,tc);
-  checkEnd();
-}
-
-// ---------- КОНЕЦ ИГРЫ ----------
 function checkEnd(){
-  let p=0,b=0;
-  for(let r=0;r<SIZE;r++)
-    for(let c=0;c<SIZE;c++){
-      if(pieces[r][c]?.dataset.type==="player") p++;
-      if(pieces[r][c]?.dataset.type==="bot") b++;
-    }
-
-  if(b===0) showEnd("🏆 ПОБЕДА! Капибара гордится тобой 🦫");
-  if(p===0) showEnd("😈 ПОРАЖЕНИЕ… Капибара в шоке");
+  if(botShips===0){
+    endGame("🏆 Победа! Капибара счастлива 🦫💛");
+  }
+  if(playerShips===0){
+    endGame("💀 Поражение… Капибара разочарована");
+  }
 }
 
-function showEnd(text){
-  document.getElementById("endText").innerText=text;
-  document.getElementById("endScreen").style.display="flex";
+function endGame(text){
+  gScreen.classList.add("hidden");
+  mText.innerText=text;
+  mScreen.classList.remove("hidden");
 }
 </script>
 </body>
