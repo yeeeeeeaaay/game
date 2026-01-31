@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Капибарный лабиринт</title>
+<style>
+body {
+  margin:0;
+  overflow:hidden;
+  font-family: Comic Sans MS, Arial, sans-serif;
+  text-align:center;
+  position:relative;
+  background: linear-gradient(to bottom, #87cefa, #fffacd); /* небо и солнце */
+}
+.hidden { display:none; }
+.container {
+  background: rgba(255,255,255,0.85);
+  margin: 40px auto;
+  padding: 25px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 500px;
+}
+button {
+  font-size: 18px;
+  padding: 12px 25px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  margin: 10px;
+}
+input {
+  font-size: 18px;
+  padding: 10px;
+  border-radius: 10px;
+  border: 2px solid #333;
+}
+#gameCanvas, #bubbleCanvas {
+  position:absolute;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  z-index:1;
+}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<canvas id="bubbleCanvas"></canvas>
+
+<div class="container" id="colorScreen">
+  <h2>🦫 Мой любимый цвет?</h2>
+  <input id="colorInput" placeholder="Введите цвет">
+  <br><br>
+  <button onclick="checkColor()">Ответить</button>
+</div>
+
+<div class="container hidden" id="messageScreen">
+  <h2 id="messageText"></h2>
+</div>
+
+<script>
+/* ================== Логика цвета ================== */
+function checkColor(){
+  const val = document.getElementById("colorInput").value.toLowerCase().trim();
+  if(val==="фиолетовый"){
+    document.getElementById("colorScreen").classList.add("hidden");
+    startMaze();
+  } else {
+    document.getElementById("colorScreen").classList.add("hidden");
+    const msg = document.getElementById("messageScreen");
+    msg.classList.remove("hidden");
+    document.getElementById("messageText").innerText = "Ты серьезно? Настолько плохо меня знаешь?";
+  }
+}
+
+/* ================== Лабиринт ================== */
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let mazeDone = false;
+
+const player = {x:50, y:50, size:40};
+const goal = {x:canvas.width-100, y:canvas.height-100, size:50};
+const walls = [];
+
+// Создадим случайные стены лабиринта
+for(let i=0;i<15;i++){
+  walls.push({
+    x:Math.random()*canvas.width*0.8+50,
+    y:Math.random()*canvas.height*0.8+50,
+    w:Math.random()*100+50,
+    h:20
+  });
+}
+
+// Капибара с шоколадкой (квадрат с коричневой «шоколадкой»)
+function drawPlayer(){
+  ctx.fillStyle="#a0522d"; // капибара
+  ctx.fillRect(player.x, player.y, player.size, player.size);
+  ctx.fillStyle="#8b0000"; // шоколадка
+  ctx.fillRect(player.x+10, player.y+10, 20, 20);
+}
+
+function drawGoal(){
+  ctx.fillStyle="#ff69b4";
+  ctx.fillRect(goal.x, goal.y, goal.size, goal.size);
+  ctx.fillStyle="white";
+  ctx.font="20px Comic Sans MS";
+  ctx.fillText("🏆", goal.x+10, goal.y+30);
+}
+
+function drawWalls(){
+  ctx.fillStyle="#228B22";
+  walls.forEach(w=>{
+    ctx.fillRect(w.x,w.y,w.w,w.h);
+  });
+}
+
+function animateMaze(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawWalls();
+  drawGoal();
+  drawPlayer();
+
+  if(checkCollision()){
+    mazeDone=true;
+    canvas.style.display="none";
+    showCongrats();
+    return;
+  }
+
+  requestAnimationFrame(animateMaze);
+}
+
+function checkCollision(){
+  return player.x + player.size > goal.x &&
+         player.x < goal.x + goal.size &&
+         player.y + player.size > goal.y &&
+         player.y < goal.y + goal.size;
+}
+
+/* Управление клавишами */
+document.addEventListener("keydown",(e)=>{
+  if(!mazeDone){
+    const step = 10;
+    let nextX = player.x;
+    let nextY = player.y;
+    if(e.key==="ArrowUp") nextY-=step;
+    if(e.key==="ArrowDown") nextY+=step;
+    if(e.key==="ArrowLeft") nextX-=step;
+    if(e.key==="ArrowRight") nextX+=step;
+
+    // проверка на столкновение со стенами
+    let collide=false;
+    walls.forEach(w=>{
+      if(nextX+player.size > w.x && nextX < w.x+w.w &&
+         nextY+player.size > w.y && nextY < w.y+w.h){
+        collide=true;
+      }
+    });
+    if(!collide){
+      player.x = nextX;
+      player.y = nextY;
+    }
+  }
+});
+
+/* ================== Поздравление + пузырьки ================== */
+const bubbleCanvas = document.getElementById("bubbleCanvas");
+const bctx = bubbleCanvas.getContext("2d");
+bubbleCanvas.width = window.innerWidth;
+bubbleCanvas.height = window.innerHeight;
+const bubbles=[];
+
+function showCongrats(){
+  const msg = document.getElementById("messageScreen");
+  msg.classList.remove("hidden");
+  document.getElementById("messageText").innerText="Поздравляю, ты прошёл! С меня 3 желания, йееееееей!";
+
+  // запустить пузырьки
+  for(let i=0;i<50;i++){
+    bubbles.push({
+      x: Math.random()*bubbleCanvas.width,
+      y: Math.random()*bubbleCanvas.height,
+      r: Math.random()*20+10,
+      dx: (Math.random()-0.5)*2,
+      dy: -Math.random()*2
+    });
+  }
+  animateBubbles();
+}
+
+function animateBubbles(){
+  bctx.clearRect(0,0,bubbleCanvas.width,bubbleCanvas.height);
+  bubbles.forEach(b=>{
+    b.x += b.dx;
+    b.y += b.dy;
+    bctx.beginPath();
+    bctx.fillStyle = "rgba(173,216,230,0.7)";
+    bctx.arc(b.x,b.y,b.r,0,Math.PI*2);
+    bctx.fill();
+  });
+  requestAnimationFrame(animateBubbles);
+}
+
+/* ================== Запуск лабиринта ================== */
+function startMaze(){
+  const msg = document.getElementById("messageScreen");
+  msg.classList.add("hidden");
+  animateMaze();
+}
+</script>
+
+</body>
+</html>
