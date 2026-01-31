@@ -60,7 +60,7 @@
 </div>
 
 <div id="videoWrapper" style="display:none;">
-  <iframe id="musicVideo" src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&mute=0" allow="autoplay" allowfullscreen></iframe>
+  <iframe id="musicVideo" src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&mute=0&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 </div>
 
 <div id="mazeContainer" class="hidden">
@@ -93,33 +93,28 @@
   const playerSize = 50;
   const walls = [];
 
-  // Стены лабиринта - массив объектов с координатами и размерами (px)
-  // Пример: {left: x, top: y, width: w, height: h}
+  // Новый простой лабиринт с открытыми проходами
   const wallData = [
     {left: 0, top: 0, width: 500, height: 20},    // Верхняя
     {left: 0, top: 0, width: 20, height: 500},    // Левая
     {left: 0, top: 480, width: 500, height: 20},  // Нижняя
     {left: 480, top: 0, width: 20, height: 500},  // Правая
-    // Внутренние стены
-    {left: 60, top: 0, width: 20, height: 380},
-    {left: 120, top: 120, width: 20, height: 380},
-    {left: 180, top: 0, width: 20, height: 380},
-    {left: 240, top: 120, width: 20, height: 380},
-    {left: 300, top: 0, width: 20, height: 380},
-    {left: 360, top: 120, width: 20, height: 380},
-    {left: 420, top: 0, width: 20, height: 380},
 
-    {left: 20, top: 60, width: 60, height: 20},
-    {left: 80, top: 180, width: 60, height: 20},
-    {left: 140, top: 60, width: 60, height: 20},
-    {left: 200, top: 180, width: 60, height: 20},
-    {left: 260, top: 60, width: 60, height: 20},
-    {left: 320, top: 180, width: 60, height: 20},
-    {left: 380, top: 60, width: 60, height: 20},
-    {left: 440, top: 180, width: 40, height: 20}
+    {left: 100, top: 0, width: 20, height: 350},  // Вертикальная
+    {left: 200, top: 150, width: 20, height: 350},  
+    {left: 300, top: 0, width: 20, height: 350},
+    {left: 400, top: 150, width: 20, height: 350},
+
+    {left: 20, top: 100, width: 100, height: 20}, // Горизонтальная
+    {left: 120, top: 250, width: 100, height: 20},
+    {left: 220, top: 100, width: 100, height: 20},
+    {left: 320, top: 250, width: 100, height: 20},
+    {left: 420, top: 100, width: 60, height: 20}
   ];
 
   function createWalls() {
+    walls.forEach(w=> mazeContainer.removeChild(w.el));
+    walls.length = 0;
     wallData.forEach(w => {
       const wall = document.createElement("div");
       wall.className = "wall";
@@ -132,7 +127,6 @@
     });
   }
 
-  // Проверка коллизий с лабиринтом
   function checkCollision(nx, ny) {
     const playerRect = {left: nx, top: ny, right: nx + playerSize, bottom: ny + player.offsetHeight};
     for(let w of walls) {
@@ -141,18 +135,16 @@
         right: w.left + w.width,
         bottom: w.top + w.height
       };
-      // Проверяем пересечение прямоугольников
       if (!(playerRect.right <= wallRect.left || 
             playerRect.left >= wallRect.right ||
             playerRect.bottom <= wallRect.top ||
             playerRect.top >= wallRect.bottom)) {
-        return true; // столкновение есть
+        return true;
       }
     }
-    return false; // свободно
+    return false;
   }
 
-  // Проверка достижения цели (шоколадки)
   function checkWin(nx, ny) {
     const goalRect = {
       left: goal.offsetLeft,
@@ -168,12 +160,12 @@
   }
 
   function showMessage(text) {
-    questionScreen.classList.add("hidden");
+    questionScreen.style.display = "none";
     videoWrapper.style.display = "none";
     mazeContainer.classList.add("hidden");
     messageScreen.classList.remove("hidden");
     messageText.innerText = text;
-    createBubbles(100);
+    createBubbles(120);
   }
 
   function createBubbles(count) {
@@ -202,7 +194,6 @@
     draw();
   }
 
-  // Обработка ответа на вопрос
   function checkAnswer() {
     const ans = answerInput.value.trim().toLowerCase();
     if(ans === "лиса") {
@@ -218,10 +209,8 @@
     }
   }
 
-  // Управление капибарой
   document.addEventListener("keydown", e=>{
     if(mazeContainer.classList.contains("hidden")) return;
-
     const step = 10;
     let nx = playerPos.left;
     let ny = playerPos.top;
@@ -230,7 +219,6 @@
     else if(e.key === "ArrowLeft") nx -= step;
     else if(e.key === "ArrowRight") nx += step;
 
-    // Проверяем границы
     if(nx < 0) nx = 0;
     if(ny < 0) ny = 0;
     if(nx > 500 - playerSize) nx = 500 - playerSize;
