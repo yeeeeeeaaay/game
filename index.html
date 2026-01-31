@@ -4,49 +4,96 @@
 <meta charset="UTF-8">
 <title>Капибара и шоколадка</title>
 <style>
-body {margin:0; font-family:'Comic Sans MS', Arial, sans-serif; background:#ffe066; text-align:center; overflow:hidden;}
-#gameScreen {position:relative; width:100vw; height:100vh;}
-#capy {position:absolute; width:150px; height:150px; background-image:url("https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png"); background-size:contain; background-repeat:no-repeat; top:50%; left:50%; transform:translate(-50%,-50%);}
-#snickers {position:absolute; width:100px; height:40px; background-image:url("https://snickersni.kz/i/packs/dushnila.png"); background-size:contain; background-repeat:no-repeat; top:100px; left:100px;}
+body {margin:0; font-family:'Comic Sans MS', Arial, sans-serif; background:#87ceeb; overflow:hidden; text-align:center;}
+#questionScreen, #gameScreen {width:100vw; height:100vh; position:absolute; top:0; left:0;}
+.hidden {display:none;}
+#capy {position:absolute; width:150px; height:150px; background-image:url("https://png.pngtree.com/png-clipart/20240709/original/pngtree-cartoon-capybara-with-blue-suit-vector-png-image_15523170.png"); background-size:contain; background-repeat:no-repeat; top:60%; left:50%; transform:translate(-50%,-50%);}
+#snickers {position:absolute; width:100px; height:40px; background-image:url("https://snickersni.kz/i/packs/dushnila.png"); background-size:contain; background-repeat:no-repeat; top:50px; left:300px;}
+.cloud {position:absolute; width:120px; height:60px; background:rgba(255,255,255,0.8); border-radius:50%; top:0; left:0;}
 #bubblesCanvas {position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;}
 iframe {position:absolute; top:10px; left:50%; transform:translateX(-50%); width:320px; height:180px; border:none; border-radius:12px;}
 </style>
 </head>
 <body>
-<div id="gameScreen">
+
+<div id="questionScreen">
+  <h2>Твоя любимка?</h2>
+  <div id="capy"></div>
+  <input id="answerInput" placeholder="Введите ответ">
+  <br><br>
+  <button onclick="checkAnswer()">Проверить</button>
+  <p id="responseText"></p>
+</div>
+
+<div id="gameScreen" class="hidden">
   <div id="capy"></div>
   <div id="snickers"></div>
+  <canvas id="bubblesCanvas"></canvas>
 </div>
-<canvas id="bubblesCanvas"></canvas>
 
-<!-- Музыка LISA -->
+<!-- Музыка -->
 <iframe src="https://www.youtube.com/embed/kbEC-AGr9n0?start=13&autoplay=1&controls=0&rel=0&modestbranding=1&iv_load_policy=3&playsinline=1" allow="autoplay; encrypted-media" allowfullscreen></iframe>
 
 <script>
-const capy = document.getElementById("capy");
+const questionScreen = document.getElementById("questionScreen");
+const gameScreen = document.getElementById("gameScreen");
+const capy = document.querySelectorAll("#capy")[0]; // Используем один элемент
 const snickers = document.getElementById("snickers");
+const responseText = document.getElementById("responseText");
+const answerInput = document.getElementById("answerInput");
 const bubblesCanvas = document.getElementById("bubblesCanvas");
 const ctx = bubblesCanvas.getContext("2d");
 bubblesCanvas.width = window.innerWidth;
 bubblesCanvas.height = window.innerHeight;
 
-// Позиции капибары
-let posX = window.innerWidth/2 - 75;
-let posY = window.innerHeight/2 - 75;
+// Облачка
+const clouds = [];
+for(let i=0;i<5;i++){
+  const cloud = document.createElement("div");
+  cloud.className="cloud";
+  cloud.style.top = Math.random()*200+"px";
+  cloud.style.left = Math.random()*window.innerWidth+"px";
+  document.body.appendChild(cloud);
+  clouds.push(cloud);
+}
 
-// Управление игроком
+// Переменные капибары
+let posX = window.innerWidth/2-75;
+let posY = window.innerHeight*0.6-75;
 let keys = {ArrowUp:false, ArrowDown:false, ArrowLeft:false, ArrowRight:false};
-document.addEventListener("keydown", (e)=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=true;});
-document.addEventListener("keyup", (e)=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=false;});
 
-// Функция движения капибары
-function moveCapy() {
-  // Случайное движение
-  let dx = (Math.random()-0.5)*5;
-  let dy = (Math.random()-0.5)*5;
+// Проверка ответа
+function checkAnswer(){
+  const ans = answerInput.value.trim().toLowerCase();
+  if(ans==="лиса"){
+    responseText.innerText="Chill 😎";
+    setTimeout(startGame,1000);
+  } else {
+    responseText.innerText="Думаю твоя любимка тебя не простит 😆";
+  }
+}
 
-  // Управление стрелками
-  const speed = 7;
+// События клавиш
+document.addEventListener("keydown",(e)=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=true;});
+document.addEventListener("keyup",(e)=>{if(keys.hasOwnProperty(e.key)) keys[e.key]=false;});
+
+// Запуск игры
+function startGame(){
+  questionScreen.classList.add("hidden");
+  gameScreen.classList.remove("hidden");
+  posX = window.innerWidth/2-75;
+  posY = window.innerHeight-200;
+  capy.style.left = posX+"px";
+  capy.style.top = posY+"px";
+  moveCapy();
+  moveClouds();
+}
+
+// Движение капибары
+function moveCapy(){
+  let dx = (Math.random()-0.5)*3;
+  let dy = (Math.random()-0.5)*3;
+  const speed = 6;
   if(keys.ArrowUp) dy -= speed;
   if(keys.ArrowDown) dy += speed;
   if(keys.ArrowLeft) dx -= speed;
@@ -55,7 +102,7 @@ function moveCapy() {
   posX += dx;
   posY += dy;
 
-  // Границы экрана
+  // Границы
   if(posX<0) posX=0;
   if(posY<0) posY=0;
   if(posX>window.innerWidth-150) posX=window.innerWidth-150;
@@ -64,19 +111,31 @@ function moveCapy() {
   capy.style.left = posX+"px";
   capy.style.top = posY+"px";
 
-  // Проверка на столкновение со Snickers
+  // Капибара съела Snickers
   const capyRect = capy.getBoundingClientRect();
   const snickRect = snickers.getBoundingClientRect();
   if(!(capyRect.right<snickRect.left || capyRect.left>snickRect.right || capyRect.bottom<snickRect.top || capyRect.top>snickRect.bottom)){
     win();
+    return;
   }
 
   requestAnimationFrame(moveCapy);
 }
 
+// Движение облаков
+function moveClouds(){
+  clouds.forEach(c=>{
+    let left = parseFloat(c.style.left);
+    left -= 0.5; // скорость облаков
+    if(left<-150) left = window.innerWidth;
+    c.style.left = left+"px";
+  });
+  requestAnimationFrame(moveClouds);
+}
+
 // Победа
-function win() {
-  alert("Поздравляю! Капибара съела Snickers! 🎉");
+function win(){
+  alert("Поздравляю! Капибара достала Snickers! 🎉");
   createBubbles(300);
   capy.style.display="none";
   snickers.style.display="none";
@@ -102,10 +161,6 @@ function createBubbles(count){
   }
   draw();
 }
-
-// Запуск
-moveCapy();
 </script>
 </body>
 </html>
-
