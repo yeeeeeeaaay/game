@@ -9,7 +9,6 @@ body {
   overflow:hidden;
   font-family: Comic Sans MS, Arial, sans-serif;
   text-align:center;
-  position:relative;
   background: linear-gradient(to bottom, #87cefa, #fffacd); /* небо и солнце */
 }
 .hidden { display:none; }
@@ -20,6 +19,8 @@ body {
   border-radius: 20px;
   width: 90%;
   max-width: 500px;
+  z-index:10;
+  position:relative;
 }
 button {
   font-size: 18px;
@@ -42,7 +43,8 @@ input {
   width:100%;
   height:100%;
   pointer-events:none;
-  z-index:1;
+  display:none; /* скрыт пока не стартует лабиринт */
+  z-index:0;
 }
 </style>
 </head>
@@ -89,26 +91,29 @@ function checkColor(){
 /* ================== Лабиринт ================== */
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+
+function resizeCanvas(){
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 
 let mazeDone = false;
-
 const player = {x:50, y:50, size:40};
-const goal = {x:canvas.width-100, y:canvas.height-100, size:50};
+const goal = {x:window.innerWidth-100, y:window.innerHeight-100, size:50};
 const walls = [];
 
-// Создадим случайные стены лабиринта
+// Случайные стены
 for(let i=0;i<15;i++){
   walls.push({
-    x:Math.random()*canvas.width*0.8+50,
-    y:Math.random()*canvas.height*0.8+50,
+    x:Math.random()*window.innerWidth*0.8+50,
+    y:Math.random()*window.innerHeight*0.8+50,
     w:Math.random()*100+50,
     h:20
   });
 }
 
-// Капибара с шоколадкой
 function drawPlayer(){
   ctx.fillStyle="#a0522d"; // капибара
   ctx.fillRect(player.x, player.y, player.size, player.size);
@@ -154,7 +159,6 @@ function checkCollision(){
          player.y < goal.y + goal.size;
 }
 
-/* Управление клавишами */
 document.addEventListener("keydown",(e)=>{
   if(!mazeDone){
     const step = 10;
@@ -165,12 +169,11 @@ document.addEventListener("keydown",(e)=>{
     if(e.key==="ArrowLeft") nextX-=step;
     if(e.key==="ArrowRight") nextX+=step;
 
-    // проверка на столкновение со стенами
     let collide=false;
     walls.forEach(w=>{
       if(nextX+player.size > w.x && nextX < w.x+w.w &&
          nextY+player.size > w.y && nextY < w.y+w.h){
-        collide=true;
+      collide=true;
       }
     });
     if(!collide){
@@ -192,7 +195,7 @@ function showCongrats(){
   msg.classList.remove("hidden");
   document.getElementById("messageText").innerText="Поздравляю, ты прошёл! С меня 3 желания, йееееееей!";
 
-  // запустить пузырьки
+  // Пузырьки
   for(let i=0;i<50;i++){
     bubbles.push({
       x: Math.random()*bubbleCanvas.width,
@@ -218,9 +221,10 @@ function animateBubbles(){
   requestAnimationFrame(animateBubbles);
 }
 
-/* ================== Запуск лабиринта ================== */
+/* ================== Старт лабиринта ================== */
 function startMaze(){
   canvas.style.display="block";
+  resizeCanvas();
   animateMaze();
 }
 </script>
