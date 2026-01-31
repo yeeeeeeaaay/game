@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -6,14 +7,14 @@
 <title>Капибара и шашки</title>
 <style>
 body {margin:0; font-family:'Comic Sans MS', Arial; background: linear-gradient(135deg, #fff7e6 0%, #ffd966 100%); text-align:center;}
-.container {width:520px; margin:20px auto; background: rgba(255 255 255 / 0.9); border-radius:20px; padding:20px; box-shadow:0 0 15px #b8860baa; position:relative; z-index:10;}
+.container {width:520px; margin:20px auto; background: rgba(255 255 255 / 0.95); border-radius:20px; padding:20px; box-shadow:0 0 15px #b8860baa; position:relative; z-index:10;}
 button {font-size:18px; padding:12px 30px; margin-top:15px; border:none; border-radius:12px; cursor:pointer; background:#6b4f4f; color:white; transition:0.3s;}
 button:hover {background:#a47171;}
 input {font-size:18px; padding:10px; border-radius:12px; border:2px solid #6b4f4f; width:60%;}
 .hidden {display:none;}
 #capy {width:120px; margin:10px;}
 #board {display:grid; grid-template-columns: repeat(8, 50px); grid-template-rows: repeat(8, 50px); margin:20px auto; border:4px solid #6b4f4f;}
-.cell {width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:24px; cursor:pointer;}
+.cell {width:50px; height:50px; display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer; user-select:none;}
 .dark {background:#6b4f4f;}
 .light {background:#fff2e6;}
 #bubblesCanvas {position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999;}
@@ -96,11 +97,13 @@ function startCheckers(){
       cell.dataset.col=c;
       cell.addEventListener("click",()=>cellClick(r,c));
       boardDiv.appendChild(cell);
+      // Расстановка шашек
       if(r<3 && (r+c)%2===1) {cell.textContent="●"; board[r][c]="player";}
       else if(r>4 && (r+c)%2===1) {cell.textContent="○"; board[r][c]="bot";}
       else board[r][c]=null;
     }
   }
+  updateBoard();
 }
 
 // Клик по клетке
@@ -108,11 +111,20 @@ function cellClick(r,c){
   if(selectedCell){
     const [sr,sc]=selectedCell;
     if(!board[r][c] && (r+c)%2===1){
+      // Проверяем прыжок через противника
+      const dr = r-sr;
+      const dc = c-sc;
+      if(Math.abs(dr)==2 && Math.abs(dc)==2){
+        const jumpedR = sr + dr/2;
+        const jumpedC = sc + dc/2;
+        if(board[jumpedR][jumpedC]==="bot"){
+          board[jumpedR][jumpedC]=null;
+        } else {selectedCell=null; return;}
+      }
       board[r][c]=board[sr][sc];
       board[sr][sc]=null;
       selectedCell=null;
       updateBoard();
-      // Проверка победы игрока
       if(board.flat().filter(x=>x==="bot").length===0){win();}
       else setTimeout(botMove,500);
     } else selectedCell=null;
@@ -141,17 +153,22 @@ function botMove(){
   while(botPieces.length){
     const idx=Math.floor(Math.random()*botPieces.length);
     const [r,c]=botPieces[idx];
-    const moves=[[r-1,c-1],[r-1,c+1]]; // простое движение вверх
+    const moves=[[r-1,c-1],[r-1,c+1],[r-2,c-2],[r-2,c+2]]; // простое движение и прыжки
     const validMoves = moves.filter(([nr,nc])=>nr>=0 && nc>=0 && nr<boardSize && nc<boardSize && !board[nr][nc]);
     if(validMoves.length){
       const [nr,nc]=validMoves[Math.floor(Math.random()*validMoves.length)];
+      // Проверка прыжка через игрока
+      if(Math.abs(nr-r)==2){
+        const jumpedR = r + (nr-r)/2;
+        const jumpedC = c + (nc-c)/2;
+        if(board[jumpedR][jumpedC]==="player") board[jumpedR][jumpedC]=null;
+      }
       board[nr][nc]="bot";
       board[r][c]=null;
       updateBoard();
-      // Проверка победы бота
       if(board.flat().filter(x=>x==="player").length===0){lose();}
       break;
-    } else botPieces.splice(idx,1); // если нет ходов, удаляем шашку из выбора
+    } else botPieces.splice(idx,1);
   }
 }
 
@@ -186,4 +203,3 @@ function createBubbles(count){
 </script>
 </body>
 </html>
-
